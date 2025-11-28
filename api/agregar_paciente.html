@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agregar Paciente | Monitoreo Adultos Mayores</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f9fafb;
+            margin: 0;
+        }
+        header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        header .user {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        header a {
+            margin-left: 1rem;
+            text-decoration: none;
+            color: #ef4444;
+            font-size: 0.9rem;
+        }
+        .nav-button {
+            background: #6b7280;
+            color: white;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            margin-right: 1rem;
+        }
+        main {
+            padding: 1.5rem 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .form-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        input[type="text"],
+        input[type="date"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .error {
+            background: #fee2e2;
+            color: #b91c1c;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #fecaca;
+        }
+        .form-note {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>Agregar Nuevo Paciente</h1>
+        <div class="subtitle">Complete la información del paciente</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <a href="{{ url_for('dashboard') }}" class="nav-button">
+            ← Volver al Dashboard
+        </a>
+        <div class="user">
+            Sesión: {{ username }} |
+            <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="form-card">
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('agregar_paciente') }}">
+            <div class="form-group">
+                <label for="nombre">Nombre *</label>
+                <input type="text" id="nombre" name="nombre" required>
+            </div>
+
+            <div class="form-group">
+                <label for="apellido_paterno">Apellido Paterno *</label>
+                <input type="text" id="apellido_paterno" name="apellido_paterno" required>
+            </div>
+
+            <div class="form-group">
+                <label for="apellido_materno">Apellido Materno</label>
+                <input type="text" id="apellido_materno" name="apellido_materno">
+            </div>
+
+            <div class="form-group">
+                <label for="fecha_nacimiento">Fecha de Nacimiento</label>
+                <input type="date" id="fecha_nacimiento" name="fecha_nacimiento">
+                <div class="form-note">Formato: AAAA-MM-DD</div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_pulsera">ID de Pulsera (opcional)</label>
+                <input type="text" id="id_pulsera" name="id_pulsera" placeholder="Ej: PULSERA_001">
+                <div class="form-note">Si la pulsera ya existe en el sistema</div>
+            </div>
+
+            <button type="submit" class="btn-primary">Guardar Paciente</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>
