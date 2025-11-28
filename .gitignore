@@ -1,13 +1,49 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# vercel
 .vercel
+
+# logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# python
 *.pyc
 __pycache__
 
-# Environments 
-.env 
-.venv 
-env/ 
-venv/ 
-ENV/ 
-env.bak/ 
-venv.bak/ 
+# Environments
+.env
+.env*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# firebase
+firebase-debug.log
+.firebase/
+
+# misc
+.DS_Store
+*.pem 

@@ -1,0 +1,194 @@
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 1.2rem;
+  color: #6b7280;
+}
+
+.header {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  margin-bottom: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navButton {
+  background: #6b7280;
+  color: white;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.navButton:hover {
+  background: #4b5563;
+}
+
+.user {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.logoutButton {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: underline;
+}
+
+.logoutButton:hover {
+  color: #dc2626;
+}
+
+.main {
+  padding: 1.5rem 2rem;
+  background: #f9fafb;
+  min-height: calc(100vh - 80px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.leyenda {
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.leyendaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.leyendaColor {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.leyendaColor.verde {
+  background: #10b981;
+}
+
+.leyendaColor.azul {
+  background: #3b82f6;
+}
+
+.leyendaColor.rojo {
+  background: #ef4444;
+}
+
+.semaforoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.pacienteCard {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid;
+}
+
+.pacienteCard.rojo {
+  border-left-color: #ef4444;
+}
+
+.pacienteCard.verde {
+  border-left-color: #10b981;
+}
+
+.pacienteCard.azul {
+  border-left-color: #3b82f6;
+}
+
+.pacienteInfo {
+  text-align: center;
+}
+
+.pacienteNombre {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.pacienteDatos {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0.3rem 0;
+}
+
+.semaforo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.semaforo.rojo {
+  background: #ef4444;
+}
+
+.semaforo.verde {
+  background: #10b981;
+}
+
+.semaforo.azul {
+  background: #3b82f6;
+}
+
+.estadoTexto {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.rojoText {
+  color: #ef4444;
+}
+
+.verdeText {
+  color: #10b981;
+}
+
+.azulText {
+  color: #3b82f6;
+}
