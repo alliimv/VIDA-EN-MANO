@@ -330,8 +330,6 @@ def hello():
     return render_template("hello.html", user="Fulanito")
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
 # ================================
 #   PÁGINA DE SEMÁFORO DE ESTADO
 # ================================
@@ -481,3 +479,7 @@ def agregar_paciente():
 
     # Si es GET, mostrar el formulario vacío
     return render_template("agregar_paciente.html", username=session.get("username"))
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
