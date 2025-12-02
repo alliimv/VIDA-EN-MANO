@@ -124,15 +124,13 @@
         /* COLORES DE BOTONES */
         .btn-pacientes { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); }
         .btn-estatus { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); }
-        .btn-semaforo { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
-        .btn-agregar { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); }
         .btn-prueba { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
+        .btn-agregar { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); }
 
         .btn-pacientes .btn-icon { color: #065f46; }
         .btn-estatus .btn-icon { color: #1e40af; }
-        .btn-semaforo .btn-icon { color: #5b21b6; }
-        .btn-agregar .btn-icon { color: #92400e; }
         .btn-prueba .btn-icon { color: #5b21b6; }
+        .btn-agregar .btn-icon { color: #92400e; }
 
         /* ESTADÍSTICAS */
         .stats-container {
@@ -210,17 +208,17 @@
 
         <!-- BOTONES PRINCIPALES -->
         <div class="main-buttons">
-            <!-- LISTA DE PACIENTES (TEMPORAL) -->
-            <a href="{{ url_for('dashboard') }}" class="main-btn btn-pacientes">
+            <!-- LISTA DE PACIENTES -->
+            <a href="/ver-pacientes" class="main-btn btn-pacientes">
                 <div class="btn-icon">👥</div>
                 <div class="btn-title">Ver Pacientes</div>
                 <div class="btn-description">
                     Ver tabla completa de pacientes<br>
-                    (Dashboard actual)
+                    con datos médicos
                 </div>
             </a>
 
-            <!-- ESTATUS INDIVIDUAL (TEMPORAL) -->
+            <!-- SEMÁFORO -->
             <a href="{{ url_for('semaforo') }}" class="main-btn btn-estatus">
                 <div class="btn-icon">📈</div>
                 <div class="btn-title">Ver Semáforo</div>
@@ -231,7 +229,7 @@
             </a>
 
             <!-- PRUEBA DE BASE DE DATOS -->
-            <a href="/sensor" class="main-btn btn-prueba">
+            <a href="/debug-conn" class="main-btn btn-prueba">
                 <div class="btn-icon">🔧</div>
                 <div class="btn-title">Prueba BD</div>
                 <div class="btn-description">
