@@ -126,11 +126,13 @@
         .btn-estatus { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); }
         .btn-semaforo { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
         .btn-agregar { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); }
+        .btn-prueba { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
 
         .btn-pacientes .btn-icon { color: #065f46; }
         .btn-estatus .btn-icon { color: #1e40af; }
         .btn-semaforo .btn-icon { color: #5b21b6; }
         .btn-agregar .btn-icon { color: #92400e; }
+        .btn-prueba .btn-icon { color: #5b21b6; }
 
         /* ESTADÍSTICAS */
         .stats-container {
@@ -214,7 +216,7 @@
                 <div class="btn-title">Ver Pacientes</div>
                 <div class="btn-description">
                     Ver tabla completa de pacientes<br>
-                    (Usar dashboard existente)
+                    (Dashboard actual)
                 </div>
             </a>
 
@@ -228,13 +230,13 @@
                 </div>
             </a>
 
-            <!-- SEMÁFORO GENERAL -->
-            <a href="{{ url_for('semaforo') }}" class="main-btn btn-semaforo">
-                <div class="btn-icon">🚦</div>
-                <div class="btn-title">Semáforo</div>
+            <!-- PRUEBA DE BASE DE DATOS -->
+            <a href="/sensor" class="main-btn btn-prueba">
+                <div class="btn-icon">🔧</div>
+                <div class="btn-title">Prueba BD</div>
                 <div class="btn-description">
-                    Vista general del estado<br>
-                    de todos los pacientes
+                    Probar conexión con<br>
+                    la base de datos
                 </div>
             </a>
 
@@ -254,7 +256,7 @@
             <div class="stats-title">📊 Resumen del Sistema</div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-number">3</div>
+                    <div class="stat-number">4</div>
                     <div class="stat-label">Módulos Activos</div>
                 </div>
                 <div class="stat-card">
