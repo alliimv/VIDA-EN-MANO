@@ -509,3 +509,69 @@ def debug_boton():
     </body>
     </html>
     """
+
+
+@app.route("/diagnostico-agregar")
+def diagnostico_agregar():
+    """
+    Página de diagnóstico para el formulario de agregar paciente
+    """
+    if not is_logged_in():
+        return "No estás logueado"
+
+    # Verifica la conexión a la base de datos
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        # Verifica si la tabla existe
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'pacientes'
+            );
+        """)
+        tabla_existe = cur.fetchone()[0]
+
+        # Verifica la estructura de la tabla
+        cur.execute("""
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_name = 'pacientes'
+            ORDER BY ordinal_position;
+        """)
+        columnas = cur.fetchall()
+
+        # Cuenta pacientes existentes
+        cur.execute("SELECT COUNT(*) FROM pacientes;")
+        total_pacientes = cur.fetchone()[0]
+
+        cur.close()
+        conn.close()
+
+        resultado = f"""
+        <h2>Diagnóstico - Agregar Paciente</h2>
+        <p><strong>Tabla 'pacientes' existe:</strong> {tabla_existe}</p>
+        <p><strong>Total pacientes en BD:</strong> {total_pacientes}</p>
+
+        <h3>Estructura de la tabla:</h3>
+        <table border="1">
+            <tr><th>Columna</th><th>Tipo</th><th>¿Nulo?</th></tr>
+        """
+        for col in columnas:
+            resultado += f"<tr><td>{col[0]}</td><td>{col[1]}</td><td>{col[2]}</td></tr>"
+        resultado += "</table>"
+
+        # Enlace para probar el formulario
+        resultado += f"""
+        <h3>Pruebas:</h3>
+        <ul>
+            <li><a href="/agregar-paciente">Ir al formulario de agregar paciente</a></li>
+            <li><a href="/dashboard">Volver al dashboard</a></li>
+        </ul>
+        """
+
+        return resultado
+
+    except Exception as e:
+        return f"<h2>Error en diagnóstico:</h2><pre>{str(e)}</pre>"
