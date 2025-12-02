@@ -438,18 +438,17 @@ def agregar_paciente():
         apellido_paterno = request.form.get("apellido_paterno", "").strip()
         apellido_materno = request.form.get("apellido_materno", "").strip()
         fecha_nacimiento = request.form.get("fecha_nacimiento", "").strip()
-        id_pulsera = request.form.get("id_pulsera", "").strip()
 
         # Validaciones básicas
         if not nombre or not apellido_paterno:
-            return render_template("agregar_paciente.html", 
-                                error="Nombre y apellido paterno son obligatorios")
+            return render_template("agregar_paciente.html",
+                                   error="Nombre y apellido paterno son obligatorios")
 
         try:
             conn = get_connection()
             cur = conn.cursor()
 
-            # 1. Insertar el paciente
+            # Insertar el paciente - EL ID SE GENERA AUTOMÁTICAMENTE (SERIAL)
             cur.execute("""
                 INSERT INTO pacientes (nombre, apellido_paterno, apellido_materno, fecha_nacimiento)
                 VALUES (%s, %s, %s, %s)
@@ -457,32 +456,26 @@ def agregar_paciente():
             """, (nombre, apellido_paterno, apellido_materno, fecha_nacimiento or None))
 
             id_paciente = cur.fetchone()[0]
-
-            # 2. Si se proporcionó ID de pulsera, actualizar la relación
-            if id_pulsera:
-                cur.execute("""
-                    UPDATE pulseras 
-                    SET id_paciente = %s 
-                    WHERE id_pulsera = %s;
-                """, (id_paciente, id_pulsera))
-
             conn.commit()
             cur.close()
             conn.close()
 
-            # Redirigir al dashboard con mensaje de éxito
+            # Mensaje de éxito
             return redirect(url_for("dashboard"))
 
         except psycopg2.Error as e:
-            return render_template("agregar_paciente.html", 
-                                error=f"Error al guardar en la base de datos: {str(e)}")
+            error_msg = str(e)
+            # Mensaje más amigable para errores comunes
+            if "pacientes_pkey" in error_msg:
+                error_msg = "Error: ID de paciente duplicado. El sistema asignará automáticamente un ID único."
+            elif "violates foreign key constraint" in error_msg:
+                error_msg = "Error: No se puede asignar la pulsera porque no existe en el sistema."
+
+            return render_template("agregar_paciente.html",
+                                   error=f"Error al guardar paciente: {error_msg}")
 
     # Si es GET, mostrar el formulario vacío
     return render_template("agregar_paciente.html", username=session.get("username"))
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
 
 
 # Ruta de prueba para verificar si el botón está funcionando

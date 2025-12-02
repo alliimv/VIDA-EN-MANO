@@ -96,10 +96,16 @@
             margin-bottom: 1rem;
             border: 1px solid #fecaca;
         }
-        .form-note {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
+        .info-box {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #bfdbfe;
+        }
+        .required {
+            color: #ef4444;
         }
     </style>
 </head>
@@ -122,40 +128,49 @@
 
 <main>
     <div class="form-card">
+        <div class="info-box">
+            📝 <strong>El ID del paciente se asignará automáticamente</strong> en orden numérico.
+        </div>
+
         {% if error %}
         <div class="error">{{ error }}</div>
         {% endif %}
 
         <form method="POST" action="{{ url_for('agregar_paciente') }}">
             <div class="form-group">
-                <label for="nombre">Nombre *</label>
-                <input type="text" id="nombre" name="nombre" required>
+                <label for="nombre">Nombre <span class="required">*</span></label>
+                <input type="text" id="nombre" name="nombre" required
+                       placeholder="Ej: Juan">
             </div>
 
             <div class="form-group">
-                <label for="apellido_paterno">Apellido Paterno *</label>
-                <input type="text" id="apellido_paterno" name="apellido_paterno" required>
+                <label for="apellido_paterno">Apellido Paterno <span class="required">*</span></label>
+                <input type="text" id="apellido_paterno" name="apellido_paterno" required
+                       placeholder="Ej: Pérez">
             </div>
 
             <div class="form-group">
                 <label for="apellido_materno">Apellido Materno</label>
-                <input type="text" id="apellido_materno" name="apellido_materno">
+                <input type="text" id="apellido_materno" name="apellido_materno"
+                       placeholder="Ej: López">
             </div>
 
             <div class="form-group">
                 <label for="fecha_nacimiento">Fecha de Nacimiento</label>
                 <input type="date" id="fecha_nacimiento" name="fecha_nacimiento">
-                <div class="form-note">Formato: AAAA-MM-DD</div>
-            </div>
-
-            <div class="form-group">
-                <label for="id_pulsera">ID de Pulsera (opcional)</label>
-                <input type="text" id="id_pulsera" name="id_pulsera" placeholder="Ej: PULSERA_001">
-                <div class="form-note">Si la pulsera ya existe en el sistema</div>
             </div>
 
             <button type="submit" class="btn-primary">Guardar Paciente</button>
         </form>
+
+        <div style="margin-top: 1.5rem; padding: 0.75rem; background: #f3f4f6; border-radius: 0.5rem; font-size: 0.875rem;">
+            <strong>Nota:</strong>
+            <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
+                <li>El sistema asignará automáticamente un ID único al paciente</li>
+                <li>Los campos con <span class="required">*</span> son obligatorios</li>
+                <li>Puedes asignar una pulsera después desde el dashboard</li>
+            </ul>
+        </div>
     </div>
 </main>
 </body>
