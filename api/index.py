@@ -483,3 +483,36 @@ def agregar_paciente():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+# Ruta de prueba para verificar si el botón está funcionando
+@app.route("/debug-boton")
+def debug_boton():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <body style="padding: 20px; font-family: sans-serif;">
+        <h1>Debug: Prueba de botones</h1>
+
+        <h2>Botón de Agregar Paciente:</h2>
+        <a href="/agregar-paciente" style="background: #10b981; color: white; padding: 10px 20px; display: inline-block; margin: 10px 0; text-decoration: none; border-radius: 5px;">
+            ➕ Agregar Paciente
+        </a>
+
+        <h2>Botón de Semáforo:</h2>
+        <a href="/semaforo" style="background: #2563eb; color: white; padding: 10px 20px; display: inline-block; margin: 10px 0; text-decoration: none; border-radius: 5px;">
+            📊 Ver Semáforo
+        </a>
+
+        <h2>Estado de rutas:</h2>
+        <ul>
+            <li><strong>/agregar-paciente:</strong> <a href="/agregar-paciente">Probar</a></li>
+            <li><strong>/semaforo:</strong> <a href="/semaforo">Probar</a></li>
+            <li><strong>/dashboard:</strong> <a href="/dashboard">Probar</a></li>
+        </ul>
+
+        <h2>¿Qué deberías ver?</h2>
+        <p>Si los botones de arriba funcionan, pero no aparecen en el dashboard, el problema está en el archivo dashboard.html</p>
+    </body>
+    </html>
+    """
