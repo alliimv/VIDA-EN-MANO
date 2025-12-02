@@ -31,6 +31,27 @@
             color: #ef4444;
             font-size: 0.9rem;
         }
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .btn-agregar {
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .btn-semaforo {
+            background: #2563eb;
+            color: white;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
         main {
             padding: 1.5rem 2rem;
         }
@@ -88,11 +109,12 @@
         <h1>Panel de monitoreo</h1>
         <div class="subtitle">Últimas lecturas por paciente</div>
     </div>
-    <div style="display: flex; align-items: center; gap: 1rem;">
-        <a href="{{ url_for('semaforo') }}" 
-           style="background: #2563eb; color: white; padding: 0.5rem 1rem; 
-                  text-decoration: none; border-radius: 0.5rem; font-size: 0.9rem;">
-            📊 Ver Semáforo de Estado
+    <div class="header-buttons">
+        <a href="{{ url_for('agregar_paciente') }}" class="btn-agregar">
+            ➕ Agregar Paciente
+        </a>
+        <a href="{{ url_for('semaforo') }}" class="btn-semaforo">
+            📊 Ver Semáforo
         </a>
         <div class="user">
             Sesión: {{ username }} |
