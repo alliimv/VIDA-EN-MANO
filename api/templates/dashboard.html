@@ -2,335 +2,275 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard | Monitoreo Adultos Mayores</title>
+    <title>Dashboard Principal | Monitoreo Adultos Mayores</title>
     <style>
-        /* ESTILOS BÁSICOS */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f9fafb;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
 
-        /* HEADER FIXED - Esto es importante */
-        header {
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* HEADER */
+        .header {
             background: white;
-            border-bottom: 2px solid #e5e7eb;
-            padding: 15px 25px;
+            border-radius: 20px;
+            padding: 25px 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            align-items: center;
         }
 
-        .header-left h1 {
-            font-size: 1.8rem;
-            color: #111827;
+        .header-title h1 {
+            color: #333;
+            font-size: 2.2rem;
             margin-bottom: 5px;
         }
 
-        .header-left .subtitle {
-            color: #6b7280;
-            font-size: 0.9rem;
+        .header-title p {
+            color: #666;
+            font-size: 1rem;
         }
 
-        /* CONTENEDOR DE BOTONES - AQUÍ ESTÁ LA SOLUCIÓN */
-        .header-buttons-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* BOTONES VISIBLES */
-        .btn {
-            display: inline-block;
-            padding: 10px 18px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .btn-agregar {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-semaforo {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-logout {
-            background: #ef4444;
-            color: white;
-        }
-
-        /* INFO DE USUARIO */
         .user-info {
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 0.9rem;
-            color: #4b5563;
+            gap: 20px;
         }
 
         .user-name {
             background: #f3f4f6;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-weight: 500;
-        }
-
-        /* TABLA DE PACIENTES */
-        main {
-            padding: 25px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .table-container {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin-top: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background: #f8fafc;
-            padding: 16px 20px;
-            text-align: left;
+            padding: 10px 20px;
+            border-radius: 50px;
             font-weight: 600;
-            color: #374151;
-            border-bottom: 2px solid #e5e7eb;
-            font-size: 0.9rem;
-        }
-
-        td {
-            padding: 16px 20px;
-            border-bottom: 1px solid #f3f4f6;
             color: #4b5563;
-            font-size: 0.9rem;
         }
 
-        tr:hover {
-            background: #f9fafb;
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
         }
 
-        /* BADGES */
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
+        .logout-btn:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        /* BOTONES PRINCIPALES */
+        .main-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .main-btn {
+            background: white;
             border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .badge-on {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-off {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        /* ESTADOS */
-        .alert {
-            color: #dc2626;
-            font-weight: 600;
-        }
-
-        .ok {
-            color: #059669;
-            font-weight: 500;
-        }
-
-        /* MENSAJE SIN DATOS */
-        .no-data {
+            padding: 40px 30px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
-            padding: 50px;
+            border: 3px solid transparent;
+        }
+
+        .main-btn:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .btn-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+        }
+
+        .btn-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+
+        .btn-description {
             color: #6b7280;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* COLORES DE BOTONES */
+        .btn-pacientes { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); }
+        .btn-estatus { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); }
+        .btn-semaforo { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
+        .btn-agregar { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); }
+
+        .btn-pacientes .btn-icon { color: #065f46; }
+        .btn-estatus .btn-icon { color: #1e40af; }
+        .btn-semaforo .btn-icon { color: #5b21b6; }
+        .btn-agregar .btn-icon { color: #92400e; }
+
+        /* ESTADÍSTICAS */
+        .stats-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .stats-title {
+            font-size: 1.5rem;
+            color: #1f2937;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border-left: 5px solid #667eea;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 1rem;
+            margin-top: 5px;
         }
 
         /* RESPONSIVE */
-        @media (max-width: 1024px) {
-            .header-buttons-container {
-                flex-wrap: wrap;
-                justify-content: flex-end;
-            }
-
-            .btn {
-                padding: 8px 14px;
-                font-size: 0.85rem;
-            }
-        }
-
         @media (max-width: 768px) {
-            header {
+            .header {
                 flex-direction: column;
-                gap: 15px;
+                gap: 20px;
                 text-align: center;
             }
 
-            .header-buttons-container {
-                justify-content: center;
-                width: 100%;
+            .main-buttons {
+                grid-template-columns: 1fr;
             }
 
-            .user-info {
-                justify-content: center;
-                width: 100%;
+            .btn-title {
+                font-size: 1.5rem;
             }
         }
     </style>
 </head>
 <body>
-<!-- HEADER CON BOTONES VISIBLES -->
-<header>
-    <div class="header-left">
-        <h1>👵👴 Panel de Monitoreo</h1>
-        <div class="subtitle">Sistema de seguimiento para adultos mayores</div>
-    </div>
-
-    <div class="header-buttons-container">
-        <!-- BOTÓN AGREGAR PACIENTE - VERDE -->
-        <a href="{{ url_for('agregar_paciente') }}" class="btn btn-agregar">
-            <span style="font-size: 1.1rem; margin-right: 5px;">➕</span>
-            Agregar Paciente
-        </a>
-
-        <!-- BOTÓN SEMÁFORO - AZUL -->
-        <a href="{{ url_for('semaforo') }}" class="btn btn-semaforo">
-            <span style="font-size: 1.1rem; margin-right: 5px;">📊</span>
-            Ver Semáforo
-        </a>
-
-        <!-- INFO USUARIO Y LOGOUT -->
-        <div class="user-info">
-            <div class="user-name">
-                👤 {{ username }}
+    <div class="dashboard-container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-title">
+                <h1>🏥 Centro de Monitoreo</h1>
+                <p>Sistema de seguimiento para adultos mayores</p>
             </div>
-            <a href="{{ url_for('logout') }}" class="btn btn-logout" style="padding: 8px 16px;">
-                Cerrar Sesión
+            <div class="user-info">
+                <div class="user-name">👤 {{ username }}</div>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Cerrar Sesión</a>
+            </div>
+        </div>
+
+        <!-- BOTONES PRINCIPALES -->
+        <div class="main-buttons">
+            <!-- LISTA DE PACIENTES -->
+            <a href="{{ url_for('lista_pacientes') }}" class="main-btn btn-pacientes">
+                <div class="btn-icon">👥</div>
+                <div class="btn-title">Lista de Pacientes</div>
+                <div class="btn-description">
+                    Ver todos los pacientes registrados<br>
+                    y administrar información
+                </div>
+            </a>
+
+            <!-- ESTATUS INDIVIDUAL -->
+            <a href="{{ url_for('estatus_paciente') }}" class="main-btn btn-estatus">
+                <div class="btn-icon">📈</div>
+                <div class="btn-title">Estatus del Paciente</div>
+                <div class="btn-description">
+                    Buscar paciente específico y ver<br>
+                    su estado de salud actual
+                </div>
+            </a>
+
+            <!-- SEMÁFORO GENERAL -->
+            <a href="{{ url_for('semaforo') }}" class="main-btn btn-semaforo">
+                <div class="btn-icon">🚦</div>
+                <div class="btn-title">Semáforo General</div>
+                <div class="btn-description">
+                    Vista general del estado<br>
+                    de todos los pacientes
+                </div>
+            </a>
+
+            <!-- AGREGAR PACIENTE -->
+            <a href="{{ url_for('agregar_paciente') }}" class="main-btn btn-agregar">
+                <div class="btn-icon">➕</div>
+                <div class="btn-title">Agregar Paciente</div>
+                <div class="btn-description">
+                    Registrar nuevo paciente<br>
+                    en el sistema
+                </div>
             </a>
         </div>
-    </div>
-</header>
 
-<!-- CONTENIDO PRINCIPAL -->
-<main>
-    {% if pacientes|length == 0 %}
-        <div class="no-data">
-            <h3>📋 No hay pacientes registrados</h3>
-            <p style="margin-top: 10px;">Usa el botón "Agregar Paciente" para comenzar</p>
-        </div>
-    {% else %}
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre del Paciente</th>
-                    <th>Edad</th>
-                    <th>Pulsera</th>
-                    <th>Temperatura</th>
-                    <th>Ritmo Cardíaco</th>
-                    <th>Estado Pulsera</th>
-                    <th>Última Lectura</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in pacientes %}
-                {% set temp = p.temperatura_c %}
-                {% set ritmo = p.ritmo_cardiaco %}
-                {% set temp_alert = temp is not none and (temp < 36 or temp > 38) %}
-                {% set ritmo_alert = ritmo is not none and (ritmo < 50 or ritmo > 110) %}
-                <tr>
-                    <td><strong>#{{ p.id_paciente }}</strong></td>
-                    <td>{{ p.nombre }}</td>
-                    <td>{{ p.edad if p.edad is not none else "-" }} años</td>
-                    <td>{{ p.id_pulsera }}</td>
-                    <td class="{{ 'alert' if temp_alert else 'ok' if temp is not none else '' }}">
-                        {{ temp if temp is not none else "-" }}°C
-                    </td>
-                    <td class="{{ 'alert' if ritmo_alert else 'ok' if ritmo is not none else '' }}">
-                        {{ ritmo if ritmo is not none else "-" }} lpm
-                    </td>
-                    <td>
-                        {% if p.esta_puesta %}
-                            <span class="badge badge-on">✅ Puesta</span>
-                        {% elif p.esta_puesta is not none %}
-                            <span class="badge badge-off">❌ No puesta</span>
-                        {% else %}
-                            <span style="color: #9ca3af;">-</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if p.momento_lectura %}
-                            {{ p.momento_lectura.strftime('%d/%m/%Y %H:%M') }}
-                        {% else %}
-                            <span style="color: #9ca3af;">Sin lecturas</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-
-    <!-- ESTADÍSTICAS -->
-    <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
-        <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            <strong>Total Pacientes:</strong> {{ pacientes|length }}
-        </div>
-        <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            <a href="{{ url_for('agregar_paciente') }}" style="color: #10b981; text-decoration: none; font-weight: 600;">
-                👉 ¿Necesitas agregar otro paciente?
-            </a>
+        <!-- ESTADÍSTICAS -->
+        <div class="stats-container">
+            <div class="stats-title">📊 Resumen del Sistema</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">Módulos Disponibles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Monitoreo</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">🏥</div>
+                    <div class="stat-label">Sistema Médico</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">✅</div>
+                    <div class="stat-label">Funcionando</div>
+                </div>
+            </div>
         </div>
     </div>
-</main>
-
-<script>
-    // Pequeña animación para confirmar que los botones funcionan
-    document.addEventListener('DOMContentLoaded', function() {
-        const botones = document.querySelectorAll('.btn');
-        botones.forEach(boton => {
-            boton.addEventListener('click', function() {
-                this.style.transform = 'scale(0.98)';
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 150);
-            });
-        });
-
-        // Confirmar que la página cargó con los botones
-        console.log('✅ Dashboard cargado correctamente');
-        console.log('✅ Botón "Agregar Paciente" disponible');
-        console.log('✅ Botón "Ver Semáforo" disponible');
-    });
-</script>
 </body>
 </html>
-

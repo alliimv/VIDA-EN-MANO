@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Pacientes | Monitoreo Adultos Mayores</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        .header {
+            background: white;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .header-left h1 {
+            font-size: 1.8rem;
+            color: #111827;
+            margin-bottom: 5px;
+        }
+
+        .header-left p {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .btn-back {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: #4b5563;
+        }
+
+        /* CONTENIDO PRINCIPAL */
+        .main-content {
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* TABLA DE PACIENTES */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 18px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 0.95rem;
+        }
+
+        td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #4b5563;
+            font-size: 0.95rem;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-on {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-off {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-none {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        /* ESTADOS */
+        .alert {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .ok {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        /* ACCIONES */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-view {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #2563eb;
+        }
+
+        /* SIN DATOS */
+        .no-data {
+            text-align: center;
+            padding: 60px;
+            color: #6b7280;
+        }
+
+        .no-data-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1024px) {
+            .header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .header-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <h1>👥 Lista de Pacientes</h1>
+            <p>Administración de pacientes registrados en el sistema</p>
+        </div>
+        <div class="header-buttons">
+            <a href="{{ url_for('agregar_paciente') }}" class="btn btn-primary">
+                ➕ Agregar Nuevo Paciente
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-back">
+                ← Volver al Dashboard
+            </a>
+            <div class="user-info">
+                👤 {{ username }}
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-content">
+        {% if pacientes|length == 0 %}
+        <div class="no-data">
+            <div class="no-data-icon">📋</div>
+            <h3>No hay pacientes registrados</h3>
+            <p style="margin-top: 10px;">Comienza agregando tu primer paciente</p>
+            <a href="{{ url_for('agregar_paciente') }}" class="btn btn-primary" style="margin-top: 20px; display: inline-block;">
+                ➕ Agregar Primer Paciente
+            </a>
+        </div>
+        {% else %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre del Paciente</th>
+                        <th>Edad</th>
+                        <th>Pulsera</th>
+                        <th>Temperatura</th>
+                        <th>Ritmo Cardíaco</th>
+                        <th>Estado Pulsera</th>
+                        <th>Última Lectura</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pacientes %}
+                    {% set temp = p.temperatura_c %}
+                    {% set ritmo = p.ritmo_cardiaco %}
+                    {% set temp_alert = temp is not none and (temp < 36 or temp > 38) %}
+                    {% set ritmo_alert = ritmo is not none and (ritmo < 50 or ritmo > 110) %}
+                    <tr>
+                        <td><strong>#{{ p.id_paciente }}</strong></td>
+                        <td>{{ p.nombre }}</td>
+                        <td>{{ p.edad if p.edad is not none else "-" }} años</td>
+                        <td>{{ p.id_pulsera }}</td>
+                        <td class="{{ 'alert' if temp_alert else 'ok' if temp is not none else '' }}">
+                            {{ temp if temp is not none else "-" }}°C
+                        </td>
+                        <td class="{{ 'alert' if ritmo_alert else 'ok' if ritmo is not none else '' }}">
+                            {{ ritmo if ritmo is not none else "-" }} lpm
+                        </td>
+                        <td>
+                            {% if p.esta_puesta %}
+                                <span class="badge badge-on">✅ Puesta</span>
+                            {% elif p.esta_puesta is not none %}
+                                <span class="badge badge-off">❌ No puesta</span>
+                            {% else %}
+                                <span class="badge badge-none">─</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.momento_lectura %}
+                                {{ p.momento_lectura.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}
+                                <span style="color: #9ca3af;">Sin lecturas</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{{ url_for('estatus_paciente') }}?id={{ p.id_paciente }}" class="action-btn btn-view">
+                                    📊 Ver Estatus
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- RESUMEN -->
+        <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
+            <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <strong>Total Pacientes:</strong> {{ pacientes|length }}
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <a href="{{ url_for('agregar_paciente') }}" style="color: #10b981; text-decoration: none; font-weight: 600;">
+                    👉 ¿Necesitas agregar otro paciente?
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
