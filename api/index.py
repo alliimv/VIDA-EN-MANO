@@ -575,3 +575,39 @@ def diagnostico_agregar():
 
     except Exception as e:
         return f"<h2>Error en diagnóstico:</h2><pre>{str(e)}</pre>"
+
+    @app.route("/ver-html-dashboard")
+    def ver_html_dashboard():
+        """
+        Muestra el código HTML actual del dashboard
+        """
+        return """
+        <!DOCTYPE html>
+        <html>
+        <body style="padding: 20px; font-family: monospace; white-space: pre-wrap;">
+        <h2>Código actual del header del dashboard:</h2>
+        &lt;header&gt;
+            &lt;div&gt;
+                &lt;h1&gt;Panel de monitoreo&lt;/h1&gt;
+                &lt;div class="subtitle"&gt;Últimas lecturas por paciente&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div style="display: flex; align-items: center; gap: 1rem;"&gt;
+                &lt;a href="/agregar-paciente" 
+                   style="background: #10b981; color: white; padding: 0.5rem 1rem; 
+                          text-decoration: none; border-radius: 0.5rem; font-size: 0.9rem;"&gt;
+                    ➕ Agregar Paciente
+                &lt;/a&gt;
+                &lt;a href="/semaforo" 
+                   style="background: #2563eb; color: white; padding: 0.5rem 1rem; 
+                          text-decoration: none; border-radius: 0.5rem; font-size: 0.9rem;"&gt;
+                    📊 Ver Semáforo
+                &lt;/a&gt;
+                &lt;div class="user"&gt;
+                    Sesión: admin |
+                    &lt;a href="/logout"&gt;Cerrar sesión&lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/header&gt;
+        </body>
+        </html>
+        """
