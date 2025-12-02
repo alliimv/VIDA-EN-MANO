@@ -544,3 +544,185 @@ def estatus_paciente():
 
 # Mantén estas rutas existentes (sin cambios):
 # /login, /logout, /agregar-paciente, /semaforo
+
+# ================================
+#   RUTAS PARA EL NUEVO SISTEMA
+# ================================
+
+@app.route("/lista-pacientes")
+def lista_pacientes():
+    """
+    Muestra todos los pacientes en una tabla
+    """
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    query = """
+        SELECT
+            p.id_paciente,
+            p.nombre,
+            p.apellido_paterno,
+            p.apellido_materno,
+            p.fecha_nacimiento,
+            COALESCE(pu.id_pulsera, 'Sin asignar') as id_pulsera,
+            l.ritmo_cardiaco,
+            l.temperatura_c,
+            l.esta_puesta,
+            l.momento_lectura
+        FROM pacientes p
+        LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
+        LEFT JOIN LATERAL (
+            SELECT *
+            FROM lecturas l
+            WHERE l.id_pulsera = pu.id_pulsera
+            ORDER BY l.momento_lectura DESC
+            LIMIT 1
+        ) l ON TRUE
+        ORDER BY p.id_paciente;
+    """
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute(query)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        return f"<h3>Error al consultar pacientes: {e}</h3>"
+
+    from datetime import date
+    def calcular_edad(fecha_nacimiento):
+        if not fecha_nacimiento:
+            return None
+        hoy = date.today()
+        return hoy.year - fecha_nacimiento.year - (
+                (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
+        )
+
+    pacientes = []
+    for r in rows:
+        nombre_completo = f"{r['nombre']} {r['apellido_paterno']} {r['apellido_materno']}"
+        pacientes.append({
+            "id_paciente": r["id_paciente"],
+            "nombre": nombre_completo,
+            "edad": calcular_edad(r["fecha_nacimiento"]),
+            "id_pulsera": r["id_pulsera"],
+            "ritmo_cardiaco": r["ritmo_cardiaco"],
+            "temperatura_c": r["temperatura_c"],
+            "esta_puesta": r["esta_puesta"],
+            "momento_lectura": r["momento_lectura"],
+        })
+
+    return render_template(
+        "lista_pacientes.html",  # Necesitas crear este archivo
+        username=session.get("username"),
+        pacientes=pacientes
+    )
+
+
+@app.route("/estatus-paciente", methods=["GET", "POST"])
+def estatus_paciente():
+    """
+    Busca paciente y muestra su semáforo personalizado
+    """
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    paciente_info = None
+    error = None
+
+    if request.method == "POST":
+        id_paciente = request.form.get("id_paciente", "").strip()
+
+        if id_paciente:
+            try:
+                conn = get_connection()
+                cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+                cur.execute("""
+                    SELECT 
+                        p.id_paciente,
+                        p.nombre,
+                        p.apellido_paterno,
+                        p.apellido_materno,
+                        pu.id_pulsera,
+                        l.ritmo_cardiaco,
+                        l.temperatura_c,
+                        l.esta_puesta,
+                        l.momento_lectura
+                    FROM pacientes p
+                    LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (id_pulsera) *
+                        FROM lecturas
+                        ORDER BY id_pulsera, momento_lectura DESC
+                    ) l ON l.id_pulsera = pu.id_pulsera
+                    WHERE p.id_paciente = %s;
+                """, (id_paciente,))
+
+                row = cur.fetchone()
+                cur.close()
+                conn.close()
+
+                if row:
+                    temp = row["temperatura_c"]
+                    ritmo = row["ritmo_cardiaco"]
+                    esta_puesta = row["esta_puesta"]
+
+                    estado = "azul"
+
+                    if temp is not None and ritmo is not None:
+                        if (temp < 35 or temp > 39.5) or (ritmo < 40 or ritmo > 130):
+                            estado = "rojo"
+                        elif (36 <= temp <= 37.5) and (60 <= ritmo <= 100) and esta_puesta:
+                            estado = "verde"
+                        else:
+                            estado = "azul"
+
+                    paciente_info = {
+                        "id_paciente": row["id_paciente"],
+                        "nombre": f"{row['nombre']} {row['apellido_paterno']} {row['apellido_materno']}",
+                        "id_pulsera": row["id_pulsera"] or "Sin asignar",
+                        "ritmo_cardiaco": ritmo,
+                        "temperatura_c": temp,
+                        "esta_puesta": esta_puesta,
+                        "momento_lectura": row["momento_lectura"],
+                        "estado": estado,
+                        "estado_texto": {
+                            "rojo": "Crítico - Necesita atención inmediata",
+                            "verde": "Estable - Todo en orden",
+                            "azul": "Advertencia - Monitorear de cerca"
+                        }[estado],
+                        "recomendacion": {
+                            "rojo": "⚠️ Contactar al médico de inmediato",
+                            "verde": "✅ Estado normal, continuar monitoreo",
+                            "azul": "📊 Revisar signos vitales frecuentemente"
+                        }[estado]
+                    }
+                else:
+                    error = f"❌ No se encontró paciente con ID: {id_paciente}"
+
+            except Exception as e:
+                error = f"Error al buscar paciente: {str(e)}"
+        else:
+            error = "❌ Por favor ingresa un ID de paciente"
+
+    return render_template(
+        "estatus_paciente.html",  # Necesitas crear este archivo
+        username=session.get("username"),
+        paciente=paciente_info,
+        error=error
+    )
+
+
+@app.route("/dashboard")
+def dashboard():
+    """
+    Dashboard principal solo con botones
+    """
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    # Si tienes la tabla vieja, usa esto:
+    return render_template("dashboard.html", username=session.get("username"))

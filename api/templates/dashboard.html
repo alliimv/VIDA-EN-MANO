@@ -208,30 +208,30 @@
 
         <!-- BOTONES PRINCIPALES -->
         <div class="main-buttons">
-            <!-- LISTA DE PACIENTES -->
-            <a href="{{ url_for('lista_pacientes') }}" class="main-btn btn-pacientes">
+            <!-- LISTA DE PACIENTES (TEMPORAL) -->
+            <a href="{{ url_for('dashboard') }}" class="main-btn btn-pacientes">
                 <div class="btn-icon">👥</div>
-                <div class="btn-title">Lista de Pacientes</div>
+                <div class="btn-title">Ver Pacientes</div>
                 <div class="btn-description">
-                    Ver todos los pacientes registrados<br>
-                    y administrar información
+                    Ver tabla completa de pacientes<br>
+                    (Usar dashboard existente)
                 </div>
             </a>
 
-            <!-- ESTATUS INDIVIDUAL -->
-            <a href="{{ url_for('estatus_paciente') }}" class="main-btn btn-estatus">
+            <!-- ESTATUS INDIVIDUAL (TEMPORAL) -->
+            <a href="{{ url_for('semaforo') }}" class="main-btn btn-estatus">
                 <div class="btn-icon">📈</div>
-                <div class="btn-title">Estatus del Paciente</div>
+                <div class="btn-title">Ver Semáforo</div>
                 <div class="btn-description">
-                    Buscar paciente específico y ver<br>
-                    su estado de salud actual
+                    Estado general de todos<br>
+                    los pacientes
                 </div>
             </a>
 
             <!-- SEMÁFORO GENERAL -->
             <a href="{{ url_for('semaforo') }}" class="main-btn btn-semaforo">
                 <div class="btn-icon">🚦</div>
-                <div class="btn-title">Semáforo General</div>
+                <div class="btn-title">Semáforo</div>
                 <div class="btn-description">
                     Vista general del estado<br>
                     de todos los pacientes
@@ -254,8 +254,8 @@
             <div class="stats-title">📊 Resumen del Sistema</div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-number">4</div>
-                    <div class="stat-label">Módulos Disponibles</div>
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Módulos Activos</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">24/7</div>
