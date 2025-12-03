@@ -206,6 +206,38 @@
             </div>
         </div>
 
+      <!-- Después del header, agrega esto: -->
+<div style="background: linear-gradient(135deg,
+    {% if user_role == 'admin' %}#ef4444
+    {% elif user_role == 'medico' %}#3b82f6
+    {% elif user_role == 'enfermero' %}#10b981
+    {% else %}#8b5cf6{% endif %} 0%,
+    {% if user_role == 'admin' %}#dc2626
+    {% elif user_role == 'medico' %}#2563eb
+    {% elif user_role == 'enfermero' %}#059669
+    {% else %}#7c3aed{% endif %} 100%);
+    color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="margin: 0;">¡Bienvenido, {{ username }}!</h2>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">
+                Rol:
+                <strong>
+                    {% if user_role == 'admin' %}👑 Administrador
+                    {% elif user_role == 'medico' %}👨‍⚕️ Médico
+                    {% elif user_role == 'enfermero' %}👩‍⚕️ Enfermero/a
+                    {% else %}👪 Familiar{% endif %}
+                </strong>
+            </p>
+        </div>
+        <a href="{{ url_for('mi_perfil') }}"
+           style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px;
+                  text-decoration: none; border-radius: 5px; border: 1px solid rgba(255,255,255,0.3);">
+            👤 Mi Perfil
+        </a>
+    </div>
+</div>
+
         <!-- BOTONES PRINCIPALES -->
         <div class="main-buttons">
             <!-- LISTA DE PACIENTES -->
@@ -217,6 +249,53 @@
                     con datos médicos
                 </div>
             </a>
+
+            <!-- En la sección de botones principales, agrega: -->
+<a href="{{ url_for('buscar_pacientes') }}" class="main-btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);">
+    <div class="btn-icon" style="color: #5b21b6;">🔍</div>
+    <div class="btn-title">Buscar Pacientes</div>
+    <div class="btn-description">
+        Buscar por nombre, ID o estado<br>
+        Filtros avanzados
+    </div>
+</a>
+            <!-- Agrega este botón en tu dashboard.html, por ejemplo en la sección de navegación: -->
+<div style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="{{ url_for('ver_pacientes') }}"
+       style="background: #3b82f6; color: white; padding: 12px 20px;
+              text-decoration: none; border-radius: 8px; font-weight: bold;">
+        📋 Ver Pacientes
+    </a>
+    <a href="{{ url_for('semaforo') }}"
+       style="background: #10b981; color: white; padding: 12px 20px;
+              text-decoration: none; border-radius: 8px; font-weight: bold;">
+        🚦 Semáforo
+    </a>
+    <a href="{{ url_for('buscar_pacientes') }}"
+       style="background: #8b5cf6; color: white; padding: 12px 20px;
+              text-decoration: none; border-radius: 8px; font-weight: bold;">
+        🔍 Buscar Pacientes
+    </a>
+    <!-- NUEVO BOTÓN PARA VER BD COMPLETA -->
+    <a href="{{ url_for('ver_bd_completa') }}"
+       style="background: #ef4444; color: white; padding: 12px 20px;
+              text-decoration: none; border-radius: 8px; font-weight: bold;">
+        🗃️ Ver Base de Datos
+    </a>
+    <a href="{{ url_for('mi_perfil') }}"
+       style="background: #f59e0b; color: white; padding: 12px 20px;
+              text-decoration: none; border-radius: 8px; font-weight: bold;">
+        👤 Mi Perfil
+    </a>
+</div>
+            <!-- Agrega este botón donde tengas los otros botones de navegación -->
+<a href="{{ url_for('ver_bd_completa') }}"
+   style="background: #ef4444; color: white; padding: 12px 20px;
+          text-decoration: none; border-radius: 8px; font-weight: bold;
+          display: inline-flex; align-items: center; gap: 8px;
+          margin: 5px;">
+    🗃️ Ver Base de Datos Completa
+</a>
 
             <!-- SEMÁFORO -->
             <a href="{{ url_for('semaforo') }}" class="main-btn btn-estatus">
@@ -274,3 +353,4 @@
     </div>
 </body>
 </html>
+

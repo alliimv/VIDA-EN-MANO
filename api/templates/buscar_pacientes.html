@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Buscar Pacientes | Monitoreo Adultos Mayores</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        .header {
+            background: white;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .header-left h1 {
+            font-size: 1.8rem;
+            color: #111827;
+            margin-bottom: 5px;
+        }
+
+        .header-left p {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-back {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+        .user-info {
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+
+        /* CONTENIDO PRINCIPAL */
+        .main-content {
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* FORMULARIO DE BÚSQUEDA */
+        .search-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+
+        .search-title {
+            font-size: 1.5rem;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+
+        .search-input {
+            padding: 12px 15px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-select {
+            padding: 12px 15px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .btn-search {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-search:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .btn-clear {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .btn-clear:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+        /* RESULTADOS */
+        .results-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            color: #1f2937;
+        }
+
+        .results-count {
+            background: #f3f4f6;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        /* TABLA DE RESULTADOS */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 0.95rem;
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #4b5563;
+            font-size: 0.95rem;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        /* BADGES DE ESTADO */
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-rojo {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-verde {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-azul {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-none {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        /* ESTADOS EN TABLA */
+        .alert {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .ok {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        /* SIN RESULTADOS */
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            color: #6b7280;
+        }
+
+        .no-results-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* QUICK ACTIONS */
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-view {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #2563eb;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .header-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .filters-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .results-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <h1>🔍 Buscar Pacientes</h1>
+            <p>Encuentra pacientes por nombre, ID o estado</p>
+        </div>
+        <div class="header-buttons">
+            <a href="{{ url_for('ver_pacientes') }}" class="btn btn-secondary">
+                👥 Ver Todos
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-back">
+                ← Dashboard
+            </a>
+            <div class="user-info">
+                👤 {{ username }}
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-content">
+        <!-- FORMULARIO DE BÚSQUEDA -->
+        <div class="search-container">
+            <h2 class="search-title">Búsqueda Avanzada</h2>
+            <form method="POST" class="search-form">
+                <div class="form-group">
+                    <label for="busqueda">🔎 Buscar por:</label>
+                    <input type="text"
+                           id="busqueda"
+                           name="busqueda"
+                           class="search-input"
+                           placeholder="Nombre, apellido o ID del paciente"
+                           value="{{ busqueda }}">
+                    <small style="color: #6b7280; margin-top: 5px;">
+                        Ejemplos: "Juan", "Pérez", "123"
+                    </small>
+                </div>
+
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label for="estado">🚦 Estado de Salud:</label>
+                        <select id="estado" name="estado" class="filter-select">
+                            <option value="">Todos los estados</option>
+                            <option value="rojo" {% if estado_filtro == 'rojo' %}selected{% endif %}>🔴 Crítico</option>
+                            <option value="azul" {% if estado_filtro == 'azul' %}selected{% endif %}>🔵 Advertencia</option>
+                            <option value="verde" {% if estado_filtro == 'verde' %}selected{% endif %}>🟢 Estable</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="tiene_pulsera">📿 Pulsera Asignada:</label>
+                        <select id="tiene_pulsera" name="tiene_pulsera" class="filter-select">
+                            <option value="">Todas las situaciones</option>
+                            <option value="con" {% if tiene_pulsera == 'con' %}selected{% endif %}>Con pulsera asignada</option>
+                            <option value="sin" {% if tiene_pulsera == 'sin' %}selected{% endif %}>Sin pulsera asignada</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-search">
+                        🔍 Buscar Pacientes
+                    </button>
+                    <a href="{{ url_for('buscar_pacientes') }}" class="btn-clear">
+                        🗑️ Limpiar Filtros
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- RESULTADOS -->
+        <div class="results-container">
+            <div class="results-header">
+                <h2 class="results-title">📋 Resultados de la Búsqueda</h2>
+                <div class="results-count">
+                    {% if request.method == 'POST' %}
+                        {{ total_resultados }} paciente(s) encontrado(s)
+                    {% else %}
+                        Realiza una búsqueda
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if request.method == 'POST' %}
+                {% if pacientes|length == 0 %}
+                <div class="no-results">
+                    <div class="no-results-icon">🔍</div>
+                    <h3>No se encontraron pacientes</h3>
+                    <p style="margin-top: 10px;">
+                        No hay pacientes que coincidan con los criterios de búsqueda.<br>
+                        Intenta con otros términos o filtros.
+                    </p>
+                </div>
+                {% else %}
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Paciente</th>
+                                <th>Edad</th>
+                                <th>Pulsera</th>
+                                <th>Temperatura</th>
+                                <th>Ritmo</th>
+                                <th>Estado</th>
+                                <th>Última Lectura</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in pacientes %}
+                            {% set temp = p.temperatura_c %}
+                            {% set ritmo = p.ritmo_cardiaco %}
+                            {% set temp_alert = temp is not none and (temp < 36 or temp > 38) %}
+                            {% set ritmo_alert = ritmo is not none and (ritmo < 50 or ritmo > 110) %}
+                            <tr>
+                                <td><strong>#{{ p.id_paciente }}</strong></td>
+                                <td>{{ p.nombre }}</td>
+                                <td>{{ p.edad if p.edad is not none else "-" }} años</td>
+                                <td>{{ p.id_pulsera }}</td>
+                                <td class="{{ 'alert' if temp_alert else 'ok' if temp is not none else '' }}">
+                                    {{ temp if temp is not none else "-" }}°C
+                                </td>
+                                <td class="{{ 'alert' if ritmo_alert else 'ok' if ritmo is not none else '' }}">
+                                    {{ ritmo if ritmo is not none else "-" }} lpm
+                                </td>
+                                <td>
+                                    <span class="badge badge-{{ p.estado }}">
+                                        {{ p.estado_texto }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if p.momento_lectura %}
+                                        {{ p.momento_lectura.strftime('%d/%m %H:%M') }}
+                                    {% else %}
+                                        <span style="color: #9ca3af;">Sin lecturas</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="quick-actions">
+                                        <a href="{{ url_for('ver_pacientes') }}?highlight={{ p.id_paciente }}"
+                                           class="action-btn btn-view">
+                                            👁️ Ver
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- RESUMEN -->
+                <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #3b82f6;">
+                        <strong>🔍 Término buscado:</strong> "{{ busqueda }}" ({{ total_resultados }} resultados)
+                    </div>
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #10b981;">
+                        <a href="{{ url_for('agregar_paciente') }}" style="color: #10b981; text-decoration: none; font-weight: 600;">
+                            ➕ ¿No encuentras al paciente? Agregar nuevo
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+            <div class="no-results">
+                <div class="no-results-icon">🔎</div>
+                <h3>Realiza una búsqueda</h3>
+                <p style="margin-top: 10px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    Usa el formulario superior para buscar pacientes por nombre, apellido, ID o estado de salud.<br>
+                    Puedes combinar múltiples filtros para encontrar exactamente lo que necesitas.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Autofocus en el campo de búsqueda
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('busqueda');
+            if (searchInput && !searchInput.value) {
+                searchInput.focus();
+            }
+
+            // Tecla Enter para buscar
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.querySelector('form').submit();
+                }
+            });
+        });
+
+        // Mostrar/ocultar filtros avanzados
+        function toggleAdvancedFilters() {
+            const filters = document.getElementById('advanced-filters');
+            const toggleBtn = document.getElementById('toggle-filters-btn');
+
+            if (filters.style.display === 'none' || filters.style.display === '') {
+                filters.style.display = 'grid';
+                toggleBtn.textContent = '▲ Ocultar filtros avanzados';
+            } else {
+                filters.style.display = 'none';
+                toggleBtn.textContent = '▼ Mostrar filtros avanzados';
+            }
+        }
+    </script>
+</body>
+</html>

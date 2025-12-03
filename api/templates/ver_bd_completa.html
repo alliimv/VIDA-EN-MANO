@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Base de Datos Completa</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2.5rem;
+        }
+
+        .role-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 1rem;
+        }
+
+        .stat-card .count {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .table-container {
+            margin-bottom: 40px;
+            overflow-x: auto;
+        }
+
+        .table-title {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0;
+        }
+
+        .table-title h2 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .data-type {
+            font-size: 0.8rem;
+            color: #666;
+            font-style: italic;
+            margin-left: 5px;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .json-view {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .search-box button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .tabla-seleccionada {
+            border: 2px solid #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div>
+                <h1>🗃️ Base de Datos Completa</h1>
+                <p style="color: #666; margin-top: 5px;">
+                    Usuario: <strong>{{ username }}</strong> |
+                    Rol: <span class="role-badge">{{ user_role }}</span>
+                </p>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin: 0; color: #666;">Vista sin filtros de rol</p>
+                <p style="margin: 5px 0 0 0; color: #888; font-size: 0.9rem;">
+                    Mostrando hasta 1000 registros por tabla
+                </p>
+            </div>
+        </div>
+
+        <!-- NAVEGACIÓN -->
+        <div class="nav-buttons">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                ← Volver al Dashboard
+            </a>
+            <a href="{{ url_for('ver_pacientes') }}" class="btn btn-primary">
+                📋 Ver Pacientes (con filtro de rol)
+            </a>
+            <button onclick="location.reload()" class="btn btn-primary">
+                🔄 Actualizar Datos
+            </button>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">
+                🚪 Cerrar Sesión
+            </a>
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <h2>📊 Estadísticas de la Base de Datos</h2>
+        <div class="stats-grid">
+            {% for tabla, total in estadisticas.items() %}
+            <div class="stat-card" onclick="scrollToTable('{{ tabla }}')"
+                 style="cursor: pointer; border-left-color: #{{ loop.index * 100 }};">
+                <h3>{{ tabla }}</h3>
+                <div class="count">{{ total }}</div>
+                <p style="color: #666; margin: 5px 0 0 0; font-size: 0.9rem;">
+                    {{ datos_tablas[tabla]['columnas']|length }} columnas
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- BUSCADOR -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Buscar en todas las tablas (nombre de columna, valor, etc.)..."
+                   onkeyup="searchTables()">
+            <button onclick="searchTables()">🔍 Buscar</button>
+        </div>
+
+        <!-- TABLAS DE DATOS -->
+        <h2>📋 Tablas y Datos</h2>
+        {% for tabla in tablas %}
+        <div class="table-container" id="table-{{ tabla }}">
+            <div class="table-title">
+                <h2>
+                    📊 {{ tabla|upper }}
+                    <span style="font-size: 0.9rem; font-weight: normal;">
+                        ({{ datos_tablas[tabla]['total_filas'] }} registros)
+                    </span>
+                </h2>
+                <span style="font-size: 0.9rem; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 15px;">
+                    {{ datos_tablas[tabla]['columnas']|length }} columnas
+                </span>
+            </div>
+
+            {% if 'error' in datos_tablas[tabla] %}
+                <div class="empty-message" style="background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; border-radius: 0 0 8px 8px; padding: 20px;">
+                    <strong>⚠️ Error al cargar esta tabla:</strong><br>
+                    {{ datos_tablas[tabla]['error'] }}
+                </div>
+            {% elif datos_tablas[tabla]['filas'] %}
+                <table>
+                    <thead>
+                        <tr>
+                            {% for columna in datos_tablas[tabla]['columnas'] %}
+                            <th>
+                                {{ columna.column_name }}
+                                <span class="data-type">({{ columna.data_type }})</span>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fila in datos_tablas[tabla]['filas'] %}
+                        <tr>
+                            {% for columna in datos_tablas[tabla]['columnas'] %}
+                            <td class="data-cell">
+                                {% set value = fila[columna.column_name] %}
+                                {% if value is none %}
+                                    <span style="color: #999; font-style: italic;">NULL</span>
+                                {% elif value is string and (value.startswith('{') and value.endswith('}') or value.startswith('[') and value.endswith(']')) %}
+                                    <div class="json-view">{{ value }}</div>
+                                {% elif columna.data_type in ['timestamp', 'timestamptz', 'date'] and value %}
+                                    {{ value.strftime('%Y-%m-%d %H:%M:%S') }}
+                                {% elif columna.data_type == 'boolean' %}
+                                    {% if value %}✅{% else %}❌{% endif %}
+                                {% else %}
+                                    {{ value|string|truncate(50) }}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-message" style="background: #f8f9fa; border-radius: 0 0 8px 8px; padding: 40px;">
+                    📭 Tabla vacía - No hay registros
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- PIE DE PÁGINA CON FECHA ACTUAL -->
+        <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #666;">
+            <p id="fecha-actual">📅 Última actualización: <span id="fecha"></span></p>
+            <p style="font-size: 0.9rem;">
+                Esta vista muestra todos los datos de la base de datos sin aplicar filtros por rol.
+                Solo usuarios autenticados pueden acceder.
+            </p>
+            <p style="font-size: 0.8rem; color: #999;">
+                Vista especial - Base de datos completa
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Mostrar fecha y hora actual
+        function actualizarFecha() {
+            const ahora = new Date();
+            const fechaStr = ahora.toISOString().replace('T', ' ').substr(0, 19);
+            document.getElementById('fecha').textContent = fechaStr;
+        }
+
+        // Inicializar fecha
+        actualizarFecha();
+
+        function scrollToTable(tableName) {
+            const element = document.getElementById('table-' + tableName);
+            element.scrollIntoView({ behavior: 'smooth' });
+            element.classList.add('tabla-seleccionada');
+            setTimeout(() => {
+                element.classList.remove('tabla-seleccionada');
+            }, 2000);
+        }
+
+        function searchTables() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const tables = document.querySelectorAll('.table-container');
+
+            tables.forEach(table => {
+                const rows = table.querySelectorAll('tbody tr');
+                let tableVisible = false;
+
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        row.style.display = '';
+                        tableVisible = true;
+
+                        // Resaltar término encontrado
+                        if (searchTerm) {
+                            const cells = row.querySelectorAll('.data-cell');
+                            cells.forEach(cell => {
+                                const original = cell.innerHTML;
+                                const highlighted = original.replace(
+                                    new RegExp(searchTerm, 'gi'),
+                                    match => `<mark style="background: yellow; padding: 2px;">${match}</mark>`
+                                );
+                                cell.innerHTML = highlighted;
+                            });
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Mostrar/ocultar tabla según si tiene resultados
+                table.style.display = tableVisible ? 'block' : 'none';
+            });
+        }
+
+        // Inicializar búsqueda sin término para mostrar todo
+        document.addEventListener('DOMContentLoaded', () => {
+            searchTables();
+        });
+    </script>
+</body>
+</html>

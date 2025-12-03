@@ -208,6 +208,20 @@
         </div>
     </div>
 
+    <!-- En el header, después del título: -->
+<div style="margin-top: 10px;">
+    <form action="{{ url_for('buscar_pacientes') }}" method="GET" style="display: flex; gap: 10px;">
+        <input type="text"
+               name="q"
+               placeholder="Buscar paciente..."
+               style="padding: 8px 15px; border: 2px solid #d1d5db; border-radius: 8px; flex-grow: 1;">
+        <button type="submit"
+                style="background: #3b82f6; color: white; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer;">
+            🔍
+        </button>
+    </form>
+</div>
+
     <!-- CONTENIDO PRINCIPAL -->
     <div class="main-content">
         {% if pacientes|length == 0 %}
@@ -281,3 +295,4 @@
     </div>
 </body>
 </html>
+
