@@ -1,0 +1,83 @@
+<!-- html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Historial - {{ id_paciente }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .container { max-width: 900px; margin: 20px auto; font-family: sans-serif; }
+    .charts { display: grid; grid-template-columns: 1fr; gap: 18px; }
+    .timeline { margin-top: 18px; }
+    .reading { padding: 8px; border-bottom: 1px solid #eee; }
+    .btn { display: inline-block; padding: 8px 12px; background:#2b7cff; color:#fff; text-decoration:none; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Historial de lecturas - Paciente {{ id_paciente }}</h2>
+
+    <div class="charts">
+      <canvas id="tempChart" height="120"></canvas>
+      <canvas id="hrChart" height="120"></canvas>
+    </div>
+
+    <div style="margin-top:12px;">
+      <a class="btn" href="{{ url_for('historial_full', id_paciente=id_paciente) }}">Ver historial completo</a>
+      <a style="margin-left:8px;" href="{{ url_for('dashboard') }}">Volver</a>
+    </div>
+
+    <div class="timeline">
+      <h3>Timeline (últimas lecturas)</h3>
+      {% if readings %}
+        {% for r in readings %}
+          <div class="reading">
+            <strong>{{ r.momento_lectura }}</strong> —
+            Pulsera: {{ r.id_pulsera }} —
+            Ritmo: {{ r.ritmo_cardiaco }} bpm —
+            Temp: {{ r.temperatura_c }} °C —
+            {% if r.esta_puesta %}Puesta{% else %}No puesta{% endif %}
+            {% if r.comentario %}<br><em>{{ r.comentario }}</em>{% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p>No hay lecturas para este paciente.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    const timestamps = {{ timestamps | safe }};
+    const temps = {{ temps | safe }};
+    const ritmos = {{ ritmos | safe }};
+
+    function makeLine(ctxId, label, data, color) {
+      const ctx = document.getElementById(ctxId).getContext('2d');
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: timestamps,
+          datasets: [{
+            label: label,
+            data: data,
+            borderColor: color,
+            backgroundColor: color + '33',
+            tension: 0.2,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          scales: {
+            x: { display: true, title: { display: false } },
+            y: { display: true }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    makeLine('tempChart', 'Temperatura (°C)', temps, 'rgb(255,99,132)');
+    makeLine('hrChart', 'Ritmo cardiaco (bpm)', ritmos, 'rgb(54,162,235)');
+  </script>
+</body>
+</html>

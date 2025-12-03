@@ -13,21 +13,18 @@ from datetime import date
 # ================================
 load_dotenv()
 
-CONNECTION_STRING = (os.getenv("connection") or "").strip()
-if not CONNECTION_STRING:
-    raise RuntimeError("No se encontró la variable de entorno 'connection'.")
+DB_URL = os.getenv("DB_URL")
+if not DB_URL:
+    raise RuntimeError("No se encontró la variable de entorno 'DB_URL'.")
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-change-this")
 
-
 def get_connection():
-    return psycopg2.connect(CONNECTION_STRING)
-
+    return psycopg2.connect(DB_URL)
 
 def is_logged_in():
     return session.get("logged_in") is True
-
 
 # ================================
 #   RUTAS DE AUTENTICACIÓN
@@ -93,7 +90,6 @@ def dashboard():
 # ================================
 #   VER PACIENTES (TABLA)
 # ================================
-
 @app.route("/ver-pacientes")
 def ver_pacientes():
     if not is_logged_in():
@@ -106,10 +102,10 @@ def ver_pacientes():
             p.apellido_paterno,
             p.apellido_materno,
             p.fecha_nacimiento,
-            COALESCE(pu.id_pulsera, 'Sin asignar') as id_pulsera,
+            pu.id_pulsera,  
             l.ritmo_cardiaco,
             l.temperatura_c,
-            l.esta_puesta,
+            l.esta_puesta,  
             l.momento_lectura
         FROM pacientes p
         LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
@@ -138,7 +134,7 @@ def ver_pacientes():
             return None
         hoy = date.today()
         return hoy.year - fecha_nacimiento.year - (
-                (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
+            (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
         )
 
     pacientes = []
@@ -148,17 +144,16 @@ def ver_pacientes():
             "id_paciente": r["id_paciente"],
             "nombre": nombre_completo,
             "edad": calcular_edad(r["fecha_nacimiento"]),
-            "id_pulsera": r["id_pulsera"],
+            "id_pulsera": r["id_pulsera"] if r["id_pulsera"] is not None else "Sin asignar",  # Aquí se maneja el None
             "ritmo_cardiaco": r["ritmo_cardiaco"],
             "temperatura_c": r["temperatura_c"],
             "esta_puesta": r["esta_puesta"],
             "momento_lectura": r["momento_lectura"],
         })
 
-    # Usa el template que ya tienes para la tabla
     return render_template("tabla_pacientes.html",
-                           username=session.get("username"),
-                           pacientes=pacientes)
+                         username=session.get("username"),
+                         pacientes=pacientes)
 
 
 # ================================
@@ -387,3 +382,109 @@ def sensor():
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+# python
+import json
+# (place this import near the other imports at top of file)
+
+@app.route("/historial/<int:id_paciente>")
+def historial(id_paciente):
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        # get all pulseras for this paciente
+        cur.execute("SELECT id_pulsera FROM pulseras WHERE id_paciente = %s;", (id_paciente,))
+        pulseras_rows = cur.fetchall()
+        pulseras = [r["id_pulsera"] for r in pulseras_rows]
+
+        readings = []
+        if pulseras:
+            # recent N readings across all pulseras (most recent first)
+            cur.execute("""
+                SELECT id_lectura, id_pulsera, ritmo_cardiaco, temperatura_c, esta_puesta, comentario, momento_lectura
+                FROM lecturas
+                WHERE id_pulsera = ANY(%s)
+                ORDER BY momento_lectura DESC
+                LIMIT 50;
+            """, (pulseras,))
+            rows = cur.fetchall()
+            # convert to list ordered ascending (old -> new) for charts
+            for r in reversed(rows):
+                readings.append({
+                    "id_lectura": r["id_lectura"],
+                    "id_pulsera": r["id_pulsera"],
+                    "ritmo_cardiaco": r["ritmo_cardiaco"],
+                    "temperatura_c": r["temperatura_c"],
+                    "esta_puesta": r["esta_puesta"],
+                    "comentario": r["comentario"],
+                    "momento_lectura": r["momento_lectura"].isoformat() if r["momento_lectura"] else None
+                })
+
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        return f"<h3>Error al obtener historial: {e}</h3>"
+
+    timestamps = [r["momento_lectura"] for r in readings]
+    temps = [r["temperatura_c"] for r in readings]
+    ritmos = [r["ritmo_cardiaco"] for r in readings]
+
+    return render_template(
+        "historial.html",
+        username=session.get("username"),
+        id_paciente=id_paciente,
+        readings=readings,
+        timestamps=json.dumps(timestamps),
+        temps=json.dumps(temps),
+        ritmos=json.dumps(ritmos),
+    )
+
+
+@app.route("/historial/<int:id_paciente>/full")
+def historial_full(id_paciente):
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        cur.execute("SELECT id_pulsera FROM pulseras WHERE id_paciente = %s;", (id_paciente,))
+        pulseras = [r["id_pulsera"] for r in cur.fetchall()]
+
+        full = []
+        if pulseras:
+            cur.execute("""
+                SELECT id_lectura, id_pulsera, ritmo_cardiaco, temperatura_c, esta_puesta, comentario, momento_lectura
+                FROM lecturas
+                WHERE id_pulsera = ANY(%s)
+                ORDER BY momento_lectura DESC;
+            """, (pulseras,))
+            rows = cur.fetchall()
+            for r in rows:
+                full.append({
+                    "id_lectura": r["id_lectura"],
+                    "id_pulsera": r["id_pulsera"],
+                    "ritmo_cardiaco": r["ritmo_cardiaco"],
+                    "temperatura_c": r["temperatura_c"],
+                    "esta_puesta": r["esta_puesta"],
+                    "comentario": r["comentario"],
+                    "momento_lectura": r["momento_lectura"].isoformat() if r["momento_lectura"] else None
+                })
+
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        return f"<h3>Error al obtener historial completo: {e}</h3>"
+
+    return render_template(
+        "historial_full.html",
+        username=session.get("username"),
+        id_paciente=id_paciente,
+        full_readings=full
+    )
