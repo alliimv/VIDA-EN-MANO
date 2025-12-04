@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Asignar Familiar | Vida en Mano</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        .btn { display: inline-block; padding: 12px 24px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; }
+        .error { background: #fee; color: #c33; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h1>👪 Asignar Familiar a Paciente</h1>
+            <a href="{{ url_for('mi_perfil') }}" style="background: #6b7280; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                ← Volver a Mi Perfil
+            </a>
+        </div>
+
+        <div class="card">
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST">
+                <div class="form-group">
+                    <label for="id_usuario">Seleccionar Familiar:</label>
+                    <select id="id_usuario" name="id_usuario" required>
+                        <option value="">-- Seleccione un familiar --</option>
+                        {% for familiar in familiares %}
+                        <option value="{{ familiar.id }}">
+                            {{ familiar.username }}
+                            {% if familiar.nombre_completo %}
+                            ({{ familiar.nombre_completo }})
+                            {% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_paciente">Seleccionar Paciente:</label>
+                    <select id="id_paciente" name="id_paciente" required>
+                        <option value="">-- Seleccione un paciente --</option>
+                        {% for paciente in pacientes %}
+                        <option value="{{ paciente.id_paciente }}">
+                            {{ paciente.nombre }} {{ paciente.apellido_paterno }}
+                            {% if paciente.apellido_materno %}
+                            {{ paciente.apellido_materno }}
+                            {% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="parentesco">Parentesco (opcional):</label>
+                    <input type="text" id="parentesco" name="parentesco" placeholder="Ej: Padre, Madre, Hijo/a, Esposo/a, etc.">
+                </div>
+
+                <button type="submit" class="btn">✅ Asignar Familiar</button>
+                <a href="{{ url_for('mi_perfil') }}" style="margin-left: 10px; padding: 12px 24px; background: #6b7280; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">
+                    Cancelar
+                </a>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

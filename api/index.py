@@ -256,46 +256,212 @@ def dashboard():
 
 
 # ================================
-#   RUTA: MI PERFIL
+#   RUTA: MI PERFIL (VERSIÓN COMPLETA)
 # ================================
 @app.route("/mi-perfil")
 def mi_perfil():
-    if not is_logged_in():
-        return redirect(url_for("home"))
-
-    username = session.get("username")
+    username = session.get("username", "Invitado")
+    logged_in = session.get("logged_in", False)
 
     try:
         conn = get_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # Obtener información del usuario
+        # Datos del usuario
+        if logged_in:
+            # Obtener información con rol
+            cur.execute("""
+                SELECT username, fecha_creacion, 
+                       COALESCE(rol, 'familiar') as rol
+                FROM usuarios 
+                WHERE username = %s;
+            """, (username,))
+            usuario_data = cur.fetchone()
+
+            if usuario_data:
+                usuario = {
+                    "username": usuario_data["username"],
+                    "fecha_creacion": usuario_data["fecha_creacion"],
+                    "rol": usuario_data["rol"]
+                }
+
+                # Obtener pacientes según el rol
+                if usuario["rol"] == "admin":
+                    # Admin ve TODOS los pacientes
+                    cur.execute("""
+                        SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
+                               p.apellido_materno, p.fecha_nacimiento
+                        FROM pacientes p
+                        ORDER BY p.nombre, p.apellido_paterno;
+                    """)
+                elif usuario["rol"] == "familiar":
+                    # Verificar si la tabla de asignaciones existe
+                    try:
+                        # Familiares ven SOLO pacientes asignados
+                        cur.execute("""
+                            SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
+                                   p.apellido_materno, p.fecha_nacimiento,
+                                   af.parentesco
+                            FROM pacientes p
+                            INNER JOIN asignaciones_familiares af ON p.id_paciente = af.id_paciente
+                            INNER JOIN usuarios u ON af.id_usuario = u.id
+                            WHERE u.username = %s
+                            ORDER BY p.nombre;
+                        """, (username,))
+                    except:
+                        # Si la tabla no existe, mostrar todos (para transición)
+                        cur.execute("""
+                            SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
+                                   p.apellido_materno, p.fecha_nacimiento
+                            FROM pacientes p
+                            ORDER BY p.nombre
+                            LIMIT 10;
+                        """)
+                else:
+                    # Otros roles ven todos
+                    cur.execute("""
+                        SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
+                               p.apellido_materno, p.fecha_nacimiento
+                        FROM pacientes p
+                        ORDER BY p.nombre
+                        LIMIT 10;
+                    """)
+            else:
+                usuario = {
+                    "username": username,
+                    "fecha_creacion": None,
+                    "rol": "invitado"
+                }
+                # Invitados ven muestra limitada
+                cur.execute("""
+                    SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
+                           p.apellido_materno
+                    FROM pacientes p
+                    ORDER BY p.id_paciente
+                    LIMIT 3;
+                """)
+        else:
+            # Usuario no logueado
+            usuario = {
+                "username": "Invitado",
+                "fecha_creacion": None,
+                "rol": "invitado"
+            }
+            # Vista limitada para invitados
+            cur.execute("""
+                SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
+                       p.apellido_materno
+                FROM pacientes p
+                ORDER BY p.id_paciente
+                LIMIT 3;
+            """)
+
+        asignaciones = cur.fetchall()
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        usuario = {
+            "username": username,
+            "fecha_creacion": None,
+            "rol": "invitado" if not logged_in else "familiar"
+        }
+        asignaciones = []
+        print(f"Error en mi_perfil: {e}")
+
+    return render_template("mi_perfil.html",
+                           username=usuario["username"],
+                           usuario=usuario,
+                           asignaciones=asignaciones,
+                           logged_in=logged_in)
+
+# ================================
+#   ASIGNAR FAMILIAR A PACIENTE
+# ================================
+@app.route("/asignar-familiar", methods=["GET", "POST"])
+def asignar_familiar():
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    # Solo admin y médicos pueden asignar
+    username = session.get("username")
+    # Aquí deberías verificar el rol del usuario
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        # Obtener todos los usuarios familiares
         cur.execute("""
-            SELECT username, fecha_creacion 
+            SELECT id, username, nombre_completo 
             FROM usuarios 
-            WHERE username = %s;
-        """, (username,))
-        usuario = cur.fetchone()
+            WHERE rol = 'familiar' OR rol IS NULL
+            ORDER BY username;
+        """)
+        familiares = cur.fetchall()
 
         # Obtener todos los pacientes
         cur.execute("""
-            SELECT p.nombre, p.apellido_paterno, p.apellido_materno, p.id_paciente
-            FROM pacientes p
-            ORDER BY p.nombre;
+            SELECT id_paciente, nombre, apellido_paterno, apellido_materno
+            FROM pacientes
+            ORDER BY nombre;
         """)
-        asignaciones = cur.fetchall()
+        pacientes = cur.fetchall()
 
         cur.close()
         conn.close()
 
     except Exception as e:
-        return f"<h3>Error al cargar perfil: {e}</h3>"
+        return f"<h3>Error al cargar datos: {e}</h3>"
 
-    return render_template("mi_perfil.html",
-                           username=username,
-                           usuario=usuario,
-                           asignaciones=asignaciones)
+    if request.method == "POST":
+        id_usuario = request.form.get("id_usuario")
+        id_paciente = request.form.get("id_paciente")
+        parentesco = request.form.get("parentesco", "").strip()
 
+        if not id_usuario or not id_paciente:
+            return render_template("asignar_familiar.html",
+                                   error="Debe seleccionar un familiar y un paciente",
+                                   familiares=familiares,
+                                   pacientes=pacientes,
+                                   username=username)
+
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+
+            # Verificar si ya existe la asignación
+            cur.execute("""
+                SELECT 1 FROM asignaciones_familiares 
+                WHERE id_usuario = %s AND id_paciente = %s;
+            """, (id_usuario, id_paciente))
+
+            if cur.fetchone():
+                return render_template("asignar_familiar.html",
+                                       error="Esta asignación ya existe",
+                                       familiares=familiares,
+                                       pacientes=pacientes,
+                                       username=username)
+
+            # Crear asignación
+            cur.execute("""
+                INSERT INTO asignaciones_familiares (id_usuario, id_paciente, parentesco)
+                VALUES (%s, %s, %s);
+            """, (id_usuario, id_paciente, parentesco))
+
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            return redirect(url_for("mi_perfil"))
+
+        except Exception as e:
+            return f"<h3>Error al asignar: {e}</h3>"
+
+    return render_template("asignar_familiar.html",
+                           familiares=familiares,
+                           pacientes=pacientes,
+                           username=username)
 
 # ================================
 #   VER PACIENTES (TABLA) - TODOS LOS PACIENTES
