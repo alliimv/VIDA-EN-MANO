@@ -1,7 +1,7 @@
 # ================================
 #   IMPORTACIONES NECESARIAS
 # ================================
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
@@ -10,6 +10,7 @@ from datetime import date, datetime
 import json
 import bcrypt
 from datetime import timedelta
+from groq import Groq
 
 # ================================
 #   CONFIGURACIÓN Y CONEXIÓN
@@ -1473,6 +1474,205 @@ def debug_conn():
 def sensor():
     """Endpoint legacy para probar conexión (mantener compatibilidad)"""
     return debug_conn()
+
+
+# ================================
+#   CHATBOT CON IA (GROQ)
+# ================================
+
+@app.route("/api/chatbot", methods=["POST"])
+def chatbot_api():
+    """API del chatbot - recibe mensaje y devuelve respuesta de IA"""
+    if not is_logged_in():
+        return jsonify({"error": "No autorizado"}), 401
+
+    try:
+        data = request.get_json()
+        user_message = data.get("message", "").strip()
+
+        if not user_message:
+            return jsonify({"error": "Mensaje vacío"}), 400
+
+        # Obtener información del usuario
+        username = session.get("username")
+        user_role = session.get("user_role", "familiar")
+
+        # Obtener contexto de la base de datos para la IA
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Contexto según el rol del usuario
+        contexto_db = obtener_contexto_chatbot(cur, user_role, username)
+
+        cur.close()
+        conn.close()
+
+        # Llamar a Groq API
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if not groq_api_key:
+            return jsonify({"error": "API key de Groq no configurada. Agrega GROQ_API_KEY a tu archivo .env"}), 500
+
+        client = Groq(api_key=groq_api_key)
+
+        # Crear el prompt del sistema con contexto
+        system_prompt = f"""Eres un asistente médico virtual para el sistema 'Vida en Mano', un sistema de monitoreo de pacientes en residencias de ancianos.
+
+INFORMACIÓN DEL USUARIO:
+- Nombre: {username}
+- Rol: {user_role}
+
+CONTEXTO DE LA BASE DE DATOS:
+{contexto_db}
+
+INSTRUCCIONES:
+1. Responde de forma clara, concisa y profesional
+2. Si te preguntan por pacientes, usa la información del contexto
+3. Si te preguntan por lecturas médicas (temperatura, ritmo cardíaco), explica los valores
+4. Valores normales de referencia:
+   - Temperatura: 36-37.5°C
+   - Ritmo cardíaco: 60-100 bpm
+5. Si no tienes información suficiente, indícalo claramente
+6. Mantén un tono empático y profesional
+7. Responde en español
+
+RESTRICCIONES:
+- Solo proporciona información médica general, NO diagnósticos
+- Si es un familiar, solo habla de su paciente asignado
+- NO inventes datos que no estén en el contexto"""
+
+        # Llamar a Groq
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            model="llama-3.3-70b-versatile",  # Modelo rápido y capaz
+            temperature=0.7,
+            max_tokens=1024,
+        )
+
+        respuesta_ia = chat_completion.choices[0].message.content
+
+        return jsonify({
+            "success": True,
+            "response": respuesta_ia,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Error en chatbot: {str(e)}"}), 500
+
+
+def obtener_contexto_chatbot(cur, user_role, username):
+    """Obtiene información relevante de la BD para el contexto del chatbot"""
+    contexto = ""
+
+    try:
+        # Estadísticas generales
+        cur.execute("SELECT COUNT(*) FROM pacientes;")
+        total_pacientes = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM lecturas WHERE momento_lectura > NOW() - INTERVAL '24 hours';")
+        lecturas_24h = cur.fetchone()[0]
+
+        contexto += f"ESTADÍSTICAS GENERALES:\n"
+        contexto += f"- Total de pacientes: {total_pacientes}\n"
+        contexto += f"- Lecturas en últimas 24h: {lecturas_24h}\n\n"
+
+        # Si es familiar, solo su paciente
+        if user_role == "familiar":
+            cur.execute("""
+                SELECT u.id_paciente_asignado
+                FROM usuarios u
+                WHERE u.username = %s;
+            """, (username,))
+            result = cur.fetchone()
+
+            if result and result[0]:
+                id_paciente = result[0]
+
+                # Información del paciente
+                cur.execute("""
+                    SELECT p.nombre, p.apellido_paterno, p.apellido_materno,
+                           p.fecha_nacimiento, p.genero
+                    FROM pacientes p
+                    WHERE p.id_paciente = %s;
+                """, (id_paciente,))
+                paciente = cur.fetchone()
+
+                if paciente:
+                    edad = (date.today() - paciente[3]).days // 365
+                    contexto += f"PACIENTE ASIGNADO:\n"
+                    contexto += f"- Nombre: {paciente[0]} {paciente[1]} {paciente[2]}\n"
+                    contexto += f"- Edad: {edad} años\n"
+                    contexto += f"- Género: {paciente[4]}\n\n"
+
+                    # Última lectura
+                    cur.execute("""
+                        SELECT l.temperatura_c, l.ritmo_cardiaco, l.esta_puesta, l.momento_lectura
+                        FROM lecturas l
+                        INNER JOIN pulseras pu ON pu.id_pulsera = l.id_pulsera
+                        WHERE pu.id_paciente = %s
+                        ORDER BY l.momento_lectura DESC
+                        LIMIT 1;
+                    """, (id_paciente,))
+                    lectura = cur.fetchone()
+
+                    if lectura:
+                        contexto += f"ÚLTIMA LECTURA:\n"
+                        contexto += f"- Temperatura: {lectura[0]}°C\n"
+                        contexto += f"- Ritmo cardíaco: {lectura[1]} bpm\n"
+                        contexto += f"- Pulsera puesta: {'Sí' if lectura[2] else 'No'}\n"
+                        contexto += f"- Momento: {lectura[3]}\n"
+
+        # Si es staff, información general
+        else:
+            # Top 5 pacientes recientes
+            cur.execute("""
+                SELECT p.nombre, p.apellido_paterno, l.temperatura_c, l.ritmo_cardiaco,
+                       l.esta_puesta, l.momento_lectura
+                FROM pacientes p
+                LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
+                LEFT JOIN LATERAL (
+                    SELECT * FROM lecturas
+                    WHERE id_pulsera = pu.id_pulsera
+                    ORDER BY momento_lectura DESC
+                    LIMIT 1
+                ) l ON true
+                WHERE l.momento_lectura IS NOT NULL
+                ORDER BY l.momento_lectura DESC
+                LIMIT 5;
+            """)
+            pacientes_recientes = cur.fetchall()
+
+            if pacientes_recientes:
+                contexto += "PACIENTES CON LECTURAS RECIENTES:\n"
+                for pac in pacientes_recientes:
+                    contexto += f"- {pac[0]} {pac[1]}: Temp {pac[2]}°C, Ritmo {pac[3]} bpm, Pulsera: {'Sí' if pac[4] else 'No'}\n"
+                contexto += "\n"
+
+            # Estadísticas de criticidad
+            cur.execute("""
+                SELECT
+                    COUNT(*) FILTER (WHERE (temperatura_c < 35 OR temperatura_c > 39.5)
+                                       OR (ritmo_cardiaco < 40 OR ritmo_cardiaco > 130)) as criticos,
+                    COUNT(*) FILTER (WHERE (temperatura_c BETWEEN 36 AND 37.5)
+                                       AND (ritmo_cardiaco BETWEEN 60 AND 100)
+                                       AND esta_puesta = true) as estables
+                FROM lecturas
+                WHERE momento_lectura > NOW() - INTERVAL '24 hours';
+            """)
+            stats = cur.fetchone()
+
+            if stats:
+                contexto += f"ESTADO DE PACIENTES (últimas 24h):\n"
+                contexto += f"- Lecturas críticas: {stats[0]}\n"
+                contexto += f"- Lecturas estables: {stats[1]}\n"
+
+    except Exception as e:
+        contexto += f"\n[Error obteniendo contexto: {str(e)}]"
+
+    return contexto
 
 
 # -----------------------------
