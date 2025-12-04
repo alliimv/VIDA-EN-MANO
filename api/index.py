@@ -256,7 +256,7 @@ def dashboard():
 
 
 # ================================
-#   RUTA: MI PERFIL (VERSIÓN COMPLETA)
+#   RUTA: MI PERFIL (CON ASIGNACIONES)
 # ================================
 @app.route("/mi-perfil")
 def mi_perfil():
@@ -269,7 +269,7 @@ def mi_perfil():
 
         # Datos del usuario
         if logged_in:
-            # Obtener información con rol
+            # Obtener rol del usuario
             cur.execute("""
                 SELECT username, fecha_creacion, 
                        COALESCE(rol, 'familiar') as rol
@@ -290,14 +290,15 @@ def mi_perfil():
                     # Admin ve TODOS los pacientes
                     cur.execute("""
                         SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
-                               p.apellido_materno, p.fecha_nacimiento
+                               p.apellido_materno, p.fecha_nacimiento,
+                               NULL as parentesco
                         FROM pacientes p
-                        ORDER BY p.nombre, p.apellido_paterno;
+                        ORDER BY p.nombre;
                     """)
-                elif usuario["rol"] == "familiar":
-                    # Verificar si la tabla de asignaciones existe
+                else:
+                    # Familiares ven SOLO pacientes asignados
+                    # Primero intentar con asignaciones
                     try:
-                        # Familiares ven SOLO pacientes asignados
                         cur.execute("""
                             SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
                                    p.apellido_materno, p.fecha_nacimiento,
@@ -309,96 +310,87 @@ def mi_perfil():
                             ORDER BY p.nombre;
                         """, (username,))
                     except:
-                        # Si la tabla no existe, mostrar todos (para transición)
+                        # Si falla (tabla no existe), mostrar todos
                         cur.execute("""
                             SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
-                                   p.apellido_materno, p.fecha_nacimiento
+                                   p.apellido_materno, p.fecha_nacimiento,
+                                   NULL as parentesco
                             FROM pacientes p
                             ORDER BY p.nombre
                             LIMIT 10;
                         """)
-                else:
-                    # Otros roles ven todos
-                    cur.execute("""
-                        SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
-                               p.apellido_materno, p.fecha_nacimiento
-                        FROM pacientes p
-                        ORDER BY p.nombre
-                        LIMIT 10;
-                    """)
             else:
-                usuario = {
-                    "username": username,
-                    "fecha_creacion": None,
-                    "rol": "invitado"
-                }
-                # Invitados ven muestra limitada
-                cur.execute("""
-                    SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
-                           p.apellido_materno
-                    FROM pacientes p
-                    ORDER BY p.id_paciente
-                    LIMIT 3;
-                """)
+                usuario = {"username": username, "fecha_creacion": None, "rol": "invitado"}
+                cur.execute("SELECT id_paciente, nombre, apellido_paterno, apellido_materno FROM pacientes LIMIT 3;")
         else:
-            # Usuario no logueado
-            usuario = {
-                "username": "Invitado",
-                "fecha_creacion": None,
-                "rol": "invitado"
-            }
-            # Vista limitada para invitados
-            cur.execute("""
-                SELECT p.id_paciente, p.nombre, p.apellido_paterno, 
-                       p.apellido_materno
-                FROM pacientes p
-                ORDER BY p.id_paciente
-                LIMIT 3;
-            """)
+            usuario = {"username": "Invitado", "fecha_creacion": None, "rol": "invitado"}
+            cur.execute("SELECT id_paciente, nombre, apellido_paterno, apellido_materno FROM pacientes LIMIT 3;")
 
         asignaciones = cur.fetchall()
         cur.close()
         conn.close()
 
     except Exception as e:
-        usuario = {
-            "username": username,
-            "fecha_creacion": None,
-            "rol": "invitado" if not logged_in else "familiar"
-        }
+        usuario = {"username": username, "fecha_creacion": None, "rol": "invitado"}
         asignaciones = []
-        print(f"Error en mi_perfil: {e}")
+        print(f"Error: {e}")
 
     return render_template("mi_perfil.html",
-                           username=usuario["username"],
                            usuario=usuario,
                            asignaciones=asignaciones,
                            logged_in=logged_in)
 
 # ================================
-#   ASIGNAR FAMILIAR A PACIENTE
+#   ASIGNAR FAMILIAR A PACIENTE (SIMPLIFICADA)
 # ================================
 @app.route("/asignar-familiar", methods=["GET", "POST"])
 def asignar_familiar():
-    if not is_logged_in():
+    if not session.get("logged_in"):
         return redirect(url_for("home"))
 
-    # Solo admin y médicos pueden asignar
     username = session.get("username")
-    # Aquí deberías verificar el rol del usuario
+    error = None
 
     try:
         conn = get_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # Obtener todos los usuarios familiares
+        if request.method == "POST":
+            # Obtener datos del formulario
+            usuario_id = request.form.get("usuario_id")
+            paciente_id = request.form.get("paciente_id")
+            parentesco = request.form.get("parentesco", "").strip()
+
+            if not usuario_id or not paciente_id:
+                error = "Debe seleccionar un usuario y un paciente"
+            else:
+                # Verificar si ya existe la asignación
+                cur.execute("""
+                    SELECT 1 FROM asignaciones_familiares 
+                    WHERE id_usuario = %s AND id_paciente = %s;
+                """, (usuario_id, paciente_id))
+
+                if cur.fetchone():
+                    error = "Esta asignación ya existe"
+                else:
+                    # Crear la asignación
+                    cur.execute("""
+                        INSERT INTO asignaciones_familiares 
+                        (id_usuario, id_paciente, parentesco)
+                        VALUES (%s, %s, %s);
+                    """, (usuario_id, paciente_id, parentesco))
+
+                    conn.commit()
+                    return redirect(url_for("mi_perfil"))
+
+        # Obtener todos los usuarios (familiares)
         cur.execute("""
-            SELECT id, username, nombre_completo 
+            SELECT id, username 
             FROM usuarios 
             WHERE rol = 'familiar' OR rol IS NULL
             ORDER BY username;
         """)
-        familiares = cur.fetchall()
+        usuarios = cur.fetchall()
 
         # Obtener todos los pacientes
         cur.execute("""
@@ -412,56 +404,15 @@ def asignar_familiar():
         conn.close()
 
     except Exception as e:
-        return f"<h3>Error al cargar datos: {e}</h3>"
-
-    if request.method == "POST":
-        id_usuario = request.form.get("id_usuario")
-        id_paciente = request.form.get("id_paciente")
-        parentesco = request.form.get("parentesco", "").strip()
-
-        if not id_usuario or not id_paciente:
-            return render_template("asignar_familiar.html",
-                                   error="Debe seleccionar un familiar y un paciente",
-                                   familiares=familiares,
-                                   pacientes=pacientes,
-                                   username=username)
-
-        try:
-            conn = get_connection()
-            cur = conn.cursor()
-
-            # Verificar si ya existe la asignación
-            cur.execute("""
-                SELECT 1 FROM asignaciones_familiares 
-                WHERE id_usuario = %s AND id_paciente = %s;
-            """, (id_usuario, id_paciente))
-
-            if cur.fetchone():
-                return render_template("asignar_familiar.html",
-                                       error="Esta asignación ya existe",
-                                       familiares=familiares,
-                                       pacientes=pacientes,
-                                       username=username)
-
-            # Crear asignación
-            cur.execute("""
-                INSERT INTO asignaciones_familiares (id_usuario, id_paciente, parentesco)
-                VALUES (%s, %s, %s);
-            """, (id_usuario, id_paciente, parentesco))
-
-            conn.commit()
-            cur.close()
-            conn.close()
-
-            return redirect(url_for("mi_perfil"))
-
-        except Exception as e:
-            return f"<h3>Error al asignar: {e}</h3>"
+        error = f"Error: {str(e)}"
+        usuarios = []
+        pacientes = []
 
     return render_template("asignar_familiar.html",
-                           familiares=familiares,
+                           username=username,
+                           usuarios=usuarios,
                            pacientes=pacientes,
-                           username=username)
+                           error=error)
 
 # ================================
 #   VER PACIENTES (TABLA) - TODOS LOS PACIENTES
@@ -899,7 +850,6 @@ def asignar_pulsera(id_paciente):
                            username=session.get("username"),
                            id_paciente=id_paciente)
 
-
 # ================================
 #   SEMÁFORO
 # ================================
@@ -1064,6 +1014,47 @@ def sensor():
     except Exception as e:
         return f"Failed to connect: {e}"
 
+import bcrypt
+import psycopg2
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+
+def hash_password(password):
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt)
+
+
+def migrate():
+    conn = psycopg2.connect(os.getenv("DB_URL"))
+    cur = conn.cursor()
+
+    # Obtener usuarios con contraseñas
+    cur.execute("SELECT username, password_hash FROM usuarios;")
+    users = cur.fetchall()
+
+    updated_count = 0
+    for username, password in users:
+        if password and not password.startswith('$2b$'):  # Si no está hasheada
+            print(f"Migrando usuario: {username}")
+            hashed = hash_password(password)
+            cur.execute("""
+                UPDATE usuarios 
+                SET password_hash = %s 
+                WHERE username = %s;
+            """, (hashed.decode('utf-8'), username))
+            updated_count += 1
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    print(f"Migración completada! {updated_count} usuarios actualizados.")
+
+
+if __name__ == "__main__":
+    migrate()
 
 # ================================
 #   INICIAR APLICACIÓN
