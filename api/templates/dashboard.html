@@ -4,152 +4,1222 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Dashboard - Vida en Mano</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#f5f8fb;--card:#fff;--muted:#6b7280;--accent:#2463eb;--success:#10b981;--danger:#ef4444;--shadow:0 10px 24px rgba(2,6,23,0.06);--radius:12px}
-        *{box-sizing:border-box}
-        body{margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:var(--bg);color:#0f172a}
-        .topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 28px;background:linear-gradient(90deg,var(--accent),#0b57c8);color:#fff}
-        .brand{display:flex;align-items:center;gap:12px;font-weight:700}
-        .container{max-width:1100px;margin:26px auto;padding:0 16px}
-        .grid-2{display:grid;grid-template-columns:1fr 360px;gap:18px}
-        .card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
-        .welcome{display:flex;gap:14px;align-items:center}
-        .welcome .title{font-size:1.25rem;font-weight:700}
-        .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
-        .stat{display:flex;gap:12px;align-items:center;padding:14px;border-radius:10px}
-        .stat .icon{width:48px;height:48;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff}
-        .icon.p{background:linear-gradient(135deg,#4f46e5,#1e40af)}.icon.c{background:linear-gradient(135deg,#ef4444,#fb7185)}.icon.s{background:linear-gradient(135deg,#10b981,#34d399)}
-        .lower{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:16px}
-        ul.clean{list-style:none;margin:0;padding:0}
-        ul.clean li{padding:10px;border-radius:8px;background:#fff;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-        a.btn{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600}
-        .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-        @media (max-width:900px){.grid-2{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
+        :root {
+            /* Colores modernos y vibrantes */
+            --primary: #4F46E5;
+            --primary-dark: #4338CA;
+            --primary-light: #EEF2FF;
+            --secondary: #7C3AED;
+            --success: #10B981;
+            --success-light: #D1FAE5;
+            --warning: #F59E0B;
+            --warning-light: #FEF3C7;
+            --danger: #EF4444;
+            --danger-light: #FEE2E2;
+            --info: #06B6D4;
+            --info-light: #CFFAFE;
+            --dark: #1E293B;
+            --light: #F8FAFC;
+            --gray: #64748B;
+            --gray-light: #E2E8F0;
+            --white: #FFFFFF;
+
+            /* Sombras mejoradas */
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+            /* Radios */
+            --radius: 20px;
+            --radius-lg: 24px;
+            --radius-sm: 12px;
+            --radius-xs: 8px;
+
+            /* Transiciones */
+            --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(79, 70, 229, 0.6);
+            }
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-attachment: fixed;
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Efecto de fondo con degradado animado */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        /* Header con glassmorphism */
+        .header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--dark);
+            padding: 1.2rem 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: slideInLeft 0.6s ease-out;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            box-shadow: var(--shadow-lg);
+            animation: glow 3s ease-in-out infinite;
+            position: relative;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 18px;
+            z-index: -1;
+            opacity: 0.5;
+            filter: blur(10px);
+        }
+
+        .logo-text h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            font-size: 0.85rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            background: rgba(255, 255, 255, 1);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .user-details h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .user-details p {
+            font-size: 0.85rem;
+            color: var(--gray);
+            text-transform: capitalize;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, var(--danger), #DC2626);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            box-shadow: var(--shadow-md);
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .logout-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 2.5rem auto;
+            padding: 0 2rem;
+        }
+
+        /* Welcome Section con efecto glassmorphism */
+        .welcome-section {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: var(--shadow-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .welcome-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
+            z-index: 0;
+        }
+
+        .welcome-section > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .welcome-section:hover {
+            box-shadow: var(--shadow-2xl);
+            transform: translateY(-5px);
+            transition: var(--transition);
+        }
+
+        .welcome-content h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.75rem;
+            line-height: 1.2;
+        }
+
+        .welcome-content p {
+            color: var(--gray);
+            font-size: 1.15rem;
+            max-width: 700px;
+            font-weight: 500;
+            margin-bottom: 2rem;
+        }
+
+        .welcome-icon {
+            font-size: 5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        /* Stats Grid con animaciones */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.75rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius);
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: fadeIn 1s ease-out;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .stat-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-2xl);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover::before {
+            height: 100%;
+            opacity: 0.1;
+        }
+
+        .stat-card.total::before { background: linear-gradient(135deg, var(--primary), #6366F1); }
+        .stat-card.critical::before { background: linear-gradient(135deg, var(--danger), #F87171); }
+        .stat-card.stable::before { background: linear-gradient(135deg, var(--success), #34D399); }
+        .stat-card.warning::before { background: linear-gradient(135deg, var(--warning), #FBBF24); }
+
+        .stat-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            color: white;
+            flex-shrink: 0;
+            position: relative;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon.total {
+            background: linear-gradient(135deg, var(--primary), #6366F1);
+        }
+        .stat-icon.critical {
+            background: linear-gradient(135deg, var(--danger), #F87171);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .stat-icon.stable {
+            background: linear-gradient(135deg, var(--success), #34D399);
+        }
+        .stat-icon.warning {
+            background: linear-gradient(135deg, var(--warning), #FBBF24);
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-content h3 {
+            font-size: 0.85rem;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .stat-value {
+            font-size: 2.8rem;
+            font-weight: 900;
+            font-family: 'Poppins', sans-serif;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .stat-trend {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .stat-trend.positive { color: var(--success); }
+        .stat-trend.negative { color: var(--danger); }
+        .stat-trend.neutral { color: var(--gray); }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1100px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Chart Section */
+        .chart-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: slideInLeft 1s ease-out;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .section-header h3 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .time-filter {
+            display: flex;
+            gap: 6px;
+            background: var(--gray-light);
+            padding: 6px;
+            border-radius: var(--radius-sm);
+        }
+
+        .time-filter button {
+            padding: 8px 18px;
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-xs);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--gray);
+        }
+
+        .time-filter button.active {
+            background: var(--white);
+            color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .time-filter button:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .chart-container {
+            height: 350px;
+            position: relative;
+        }
+
+        /* Patients Section */
+        .patients-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: slideInRight 1s ease-out;
+        }
+
+        .patients-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .patient-item {
+            display: flex;
+            align-items: center;
+            padding: 1.25rem;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            text-decoration: none;
+            color: inherit;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .patient-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-light), transparent);
+            transition: var(--transition);
+        }
+
+        .patient-item:hover::before {
+            width: 100%;
+        }
+
+        .patient-item:hover {
+            background: var(--white);
+            transform: translateX(8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .patient-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--primary-light), var(--info-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-right: 1.25rem;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            z-index: 1;
+        }
+
+        .patient-info {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .patient-info h4 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--dark);
+        }
+
+        .patient-info p {
+            font-size: 0.85rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        .patient-status {
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            z-index: 1;
+        }
+
+        .status-critical {
+            background: var(--danger-light);
+            color: var(--danger);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .status-stable {
+            background: var(--success-light);
+            color: var(--success);
+        }
+        .status-warning {
+            background: var(--warning-light);
+            color: var(--warning);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1.25rem;
+            margin-top: 2rem;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-sm);
+            padding: 1.75rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--primary);
+            background: var(--white);
+        }
+
+        .action-btn i {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .action-btn span {
+            font-weight: 700;
+            text-align: center;
+            font-size: 0.95rem;
+            color: var(--dark);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2.5rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            margin-top: 4rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+
+        .footer p {
+            margin: 0.5rem 0;
+        }
+
+        .footer a {
+            color: var(--white);
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .footer a:hover {
+            opacity: 0.8;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .welcome-section {
+                flex-direction: column;
+                text-align: center;
+                gap: 1.5rem;
+            }
+
+            .welcome-content h2 {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .container {
+                padding: 0 1.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .welcome-content h2 {
+                font-size: 1.75rem;
+            }
+
+            .stat-value {
+                font-size: 2.2rem;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <header class="topbar">
-        <div class="brand"><i class="fas fa-heartbeat"></i><div>Vida en Mano</div></div>
-        <div style="display:flex;align-items:center;gap:12px">
-            <div style="text-align:right">
-                <div style="font-weight:700">{{ username }}</div>
-                <div style="font-size:0.85rem;color:rgba(255,255,255,0.9);text-transform:capitalize">{{ user_role }}</div>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-heartbeat"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Vida en Mano</h1>
+                    <span>Sistema de Monitoreo Médico</span>
+                </div>
             </div>
-            <a href="{{ url_for('logout') }}" class="btn">Cerrar sesión</a>
+
+            <div class="user-info">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        {{ username[0]|upper if username else 'U' }}
+                    </div>
+                    <div class="user-details">
+                        <h3>{{ username }}</h3>
+                        <p>{{ user_role|default('Usuario') }}</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Salir
+                </a>
+            </div>
         </div>
     </header>
 
-    <main class="container">
-        <section class="grid-2">
-            <div>
-                <div class="card welcome">
-                    <div style="font-size:34px">🏥</div>
-                    <div>
-                        <div class="title">Hola, {{ username }} 👋</div>
-                        <div style="color:var(--muted);margin-top:6px">Panel para supervisar residentes y ver alertas recientes.</div>
-                        <div class="actions">
-                            <a class="btn" href="{{ url_for('ver_pacientes') }}">Ver Residentes</a>
-                            <a class="btn" href="{{ url_for('semaforo') }}" style="background:#f97316">Semáforo</a>
-                            <a class="btn" href="{{ url_for('mi_perfil') }}" style="background:#7c3aed">Mi Perfil</a>
-                        </div>
-                    </div>
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Welcome Section -->
+        <section class="welcome-section">
+            <div class="welcome-content">
+                <h2>¡Bienvenido, {{ username }}! 👋</h2>
+                <p>Monitorea en tiempo real el estado de salud de los residentes. Todo bajo control y a tu alcance.</p>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <a href="{{ url_for('ver_pacientes') }}" class="action-btn">
+                        <i class="fas fa-user-injured"></i>
+                        <span>Ver Residentes</span>
+                    </a>
+                    <a href="{{ url_for('semaforo') }}" class="action-btn">
+                        <i class="fas fa-traffic-light"></i>
+                        <span>Semáforo</span>
+                    </a>
+                    <a href="{{ url_for('mi_perfil') }}" class="action-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Mi Perfil</span>
+                    </a>
+                    <a href="{{ url_for('buscar_pacientes') }}" class="action-btn">
+                        <i class="fas fa-search"></i>
+                        <span>Buscar</span>
+                    </a>
                 </div>
+            </div>
+            <div class="welcome-icon">
+                <i class="fas fa-stethoscope"></i>
+            </div>
+        </section>
 
-                <div class="stats">
-                    <div class="card stat" style="align-items:center">
-                        <div class="icon p"><i class="fas fa-users"></i></div>
-                        <div>
-                            <div style="font-weight:800;font-size:1.2rem">{{ total_pacientes }}</div>
-                            <div style="color:var(--muted)">Total residentes</div>
-                        </div>
-                    </div>
-
-                    <div class="card stat">
-                        <div class="icon c"><i class="fas fa-triangle-exclamation"></i></div>
-                        <div>
-                            <div style="font-weight:800;font-size:1.2rem">{{ criticos }}</div>
-                            <div style="color:var(--muted)">En estado crítico</div>
-                        </div>
-                    </div>
-
-                    <div class="card stat">
-                        <div class="icon s"><i class="fas fa-heart-circle-plus"></i></div>
-                        <div>
-                            <div style="font-weight:800;font-size:1.2rem">{{ estables }}</div>
-                            <div style="color:var(--muted)">Estables</div>
-                        </div>
-                    </div>
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-icon total">
+                    <i class="fas fa-users"></i>
                 </div>
-
-                <div class="card" style="margin-top:16px">
-                    <h4 style="margin:0 0 8px 0">Tendencia (últimos 7 días)</h4>
-                    <div style="height:250px">
-                        <canvas id="trendChart"></canvas>
+                <div class="stat-content">
+                    <h3>Total Residentes</h3>
+                    <div class="stat-value" data-target="{{ total_pacientes }}">0</div>
+                    <div class="stat-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>Activos en sistema</span>
                     </div>
                 </div>
             </div>
 
-            <aside>
-                <div class="card">
-                    <h4 style="margin-top:0">Top residentes</h4>
+            <div class="stat-card critical">
+                <div class="stat-icon critical">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Estado Crítico</h3>
+                    <div class="stat-value" data-target="{{ criticos }}">0</div>
+                    <div class="stat-trend negative">
+                        <i class="fas fa-heart-pulse"></i>
+                        <span>Requiere atención</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card stable">
+                <div class="stat-icon stable">
+                    <i class="fas fa-heart-circle-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Estables</h3>
+                    <div class="stat-value" data-target="{{ estables }}">0</div>
+                    <div class="stat-trend positive">
+                        <i class="fas fa-check-circle"></i>
+                        <span>En buen estado</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-icon warning">
+                    <i class="fas fa-sync"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Actualización</h3>
+                    <div class="stat-value" style="font-size: 2rem;">Ahora</div>
+                    <div class="stat-trend neutral">
+                        <i class="fas fa-clock"></i>
+                        <span>Tiempo real</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Chart Section -->
+            <div class="chart-section">
+                <div class="section-header">
+                    <h3>📊 Signos Vitales Promedio</h3>
+                    <div class="time-filter">
+                        <button class="active">7D</button>
+                        <button>30D</button>
+                        <button>90D</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Patients List -->
+            <div class="patients-section">
+                <div class="section-header">
+                    <h3>Destacados</h3>
+                    <a href="{{ url_for('ver_pacientes') }}" class="logout-btn" style="font-size: 0.8rem; padding: 8px 16px; background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                        Ver todos
+                    </a>
+                </div>
+
+                <div class="patients-list">
                     {% if top_residentes and top_residentes|length > 0 %}
-                        <ul class="clean">
                         {% for t in top_residentes %}
-                            <li>
-                                <div>
-                                    <div style="font-weight:700"><a href="{{ url_for('historial_paciente', id_paciente=t.id_paciente) }}" style="text-decoration:none;color:inherit">#{{ t.id_paciente }} - {{ t.nombre }}</a></div>
-                                    <div style="color:var(--muted);font-size:0.9rem">Pulsera: {{ t.id_pulsera }}</div>
-                                </div>
-                                <div>
-                                    {% if t.estado == 'Crítico' %}
-                                        <span style="background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:999px;font-weight:700">Crítico</span>
-                                    {% elif t.estado == 'Estable' %}
-                                        <span style="background:#ecfdf5;color:#065f46;padding:6px 10px;border-radius:999px;font-weight:700">Estable</span>
-                                    {% else %}
-                                        <span style="background:#f8fafc;color:#374151;padding:6px 10px;border-radius:999px;font-weight:700">{{ t.estado }}</span>
-                                    {% endif %}
-                                </div>
-                            </li>
+                        <a href="{{ url_for('historial_paciente', id_paciente=t.id_paciente) }}" class="patient-item">
+                            <div class="patient-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="patient-info">
+                                <h4>#{{ t.id_paciente }} - {{ t.nombre[:18] }}{% if t.nombre|length > 18 %}...{% endif %}</h4>
+                                <p>Pulsera: {{ t.id_pulsera if t.id_pulsera else 'No asignada' }}</p>
+                            </div>
+                            <div class="patient-status {% if t.estado == 'Crítico' %}status-critical{% elif t.estado == 'Estable' %}status-stable{% else %}status-warning{% endif %}">
+                                {{ t.estado[:8] }}
+                            </div>
+                        </a>
                         {% endfor %}
-                        </ul>
                     {% else %}
-                        <div style="color:var(--muted)">No hay residentes destacados</div>
+                        <div style="text-align: center; padding: 3rem; color: var(--gray);">
+                            <i class="fas fa-user-slash" style="font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <p style="font-weight: 600;">No hay residentes destacados</p>
+                        </div>
                     {% endif %}
-
-                    <div style="text-align:right;margin-top:10px"><a href="{{ url_for('ver_pacientes') }}" class="btn">Ver todos</a></div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="card" style="margin-top:12px;text-align:center">
-                    <div style="color:var(--muted);font-size:0.95rem">Soporte</div>
-                    <div style="font-weight:700;margin-top:6px">soporte@vidaenmano.example</div>
-                </div>
-            </aside>
-        </section>
+    <!-- Footer -->
+    <footer class="footer">
+        <p style="font-weight: 700; font-size: 1.1rem;">Vida en Mano · Sistema de Monitoreo Médico © {{ now().year }}</p>
+        <p>Para soporte técnico: <a href="mailto:soporte@vidaenmano.example">soporte@vidaenmano.example</a></p>
+    </footer>
 
-        <footer style="margin-top:22px;text-align:center;color:var(--muted)">
-            Vida en Mano · Sistema de monitoreo © {{ now().year }}
-        </footer>
-    </main>
-
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        (function(){
-            const labels = {{ trend_labels | tojson | safe }};
-            const criticos = {{ trend_criticos | tojson | safe }};
-            const estables = {{ trend_estables | tojson | safe }};
+        // Counter animation
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                element.textContent = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Initialize counters
+        document.addEventListener('DOMContentLoaded', function() {
+            const statValues = document.querySelectorAll('.stat-value[data-target]');
+            statValues.forEach(value => {
+                const target = parseInt(value.getAttribute('data-target'));
+                animateValue(value, 0, target, 2000);
+            });
+
+            // Initialize Chart
             const ctx = document.getElementById('trendChart');
-            if(!ctx) return;
+            if (!ctx) return;
+
+            const labels = {{ trend_labels | tojson | safe if trend_labels else '["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]' }};
+            const temperaturaData = {{ trend_temperatura | tojson | safe if trend_temperatura else '[36.5, 36.6, 36.4, 36.7, 36.5, 36.6, 36.5]' }};
+            const ritmoData = {{ trend_ritmo | tojson | safe if trend_ritmo else '[75, 78, 72, 80, 76, 74, 77]' }};
+
+            // Gradientes para temperatura (naranja)
+            const gradientTemp = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+            gradientTemp.addColorStop(0, 'rgba(245, 158, 11, 0.3)');
+            gradientTemp.addColorStop(1, 'rgba(245, 158, 11, 0)');
+
+            // Gradientes para ritmo cardíaco (azul)
+            const gradientRitmo = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+            gradientRitmo.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+            gradientRitmo.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
             new Chart(ctx, {
                 type: 'line',
-                data: { labels: labels, datasets: [
-                    { label: 'Críticos', data: criticos, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.12)', tension:0.3, pointRadius:3 },
-                    { label: 'Estables', data: estables, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)', tension:0.3, pointRadius:3 }
-                ]},
-                options:{responsive:true,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '🌡️ Temperatura (°C)',
+                            data: temperaturaData,
+                            borderColor: '#F59E0B',
+                            backgroundColor: gradientTemp,
+                            borderWidth: 4,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#F59E0B',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 3,
+                            pointRadius: 7,
+                            pointHoverRadius: 10,
+                            pointHoverBorderWidth: 4,
+                            yAxisID: 'y-temp'
+                        },
+                        {
+                            label: '❤️ Ritmo Cardíaco (bpm)',
+                            data: ritmoData,
+                            borderColor: '#3B82F6',
+                            backgroundColor: gradientRitmo,
+                            borderWidth: 4,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#3B82F6',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 3,
+                            pointRadius: 7,
+                            pointHoverRadius: 10,
+                            pointHoverBorderWidth: 4,
+                            yAxisID: 'y-ritmo'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: "'Poppins', sans-serif",
+                                    weight: '600'
+                                },
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                            titleColor: '#1E293B',
+                            bodyColor: '#64748B',
+                            borderColor: '#E2E8F0',
+                            borderWidth: 2,
+                            padding: 16,
+                            boxPadding: 8,
+                            usePointStyle: true,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold',
+                                family: "'Poppins', sans-serif"
+                            },
+                            bodyFont: {
+                                size: 13,
+                                family: "'Inter', sans-serif"
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${context.parsed.y} residentes`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: true,
+                                color: 'rgba(226, 232, 240, 0.5)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 13,
+                                    family: "'Inter', sans-serif",
+                                    weight: '600'
+                                },
+                                color: '#64748B'
+                            }
+                        },
+                        'y-temp': {
+                            type: 'linear',
+                            position: 'left',
+                            min: 34,
+                            max: 40,
+                            grid: {
+                                display: true,
+                                color: 'rgba(245, 158, 11, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 13,
+                                    family: "'Inter', sans-serif",
+                                    weight: '600'
+                                },
+                                color: '#F59E0B',
+                                callback: function(value) {
+                                    return value + '°C';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Temperatura (°C)',
+                                color: '#F59E0B',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        'y-ritmo': {
+                            type: 'linear',
+                            position: 'right',
+                            min: 40,
+                            max: 140,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 13,
+                                    family: "'Inter', sans-serif",
+                                    weight: '600'
+                                },
+                                color: '#3B82F6',
+                                callback: function(value) {
+                                    return value + ' bpm';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Ritmo Cardíaco (bpm)',
+                                color: '#3B82F6',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animations: {
+                        tension: {
+                            duration: 1500,
+                            easing: 'easeInOutCubic'
+                        }
+                    }
+                }
             });
-        })();
+
+            // Time filter functionality
+            const timeFilterButtons = document.querySelectorAll('.time-filter button');
+            timeFilterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    timeFilterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
     </script>
 </body>
 </html>

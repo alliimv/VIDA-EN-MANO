@@ -1,7 +1,7 @@
 # ================================
 #   IMPORTACIONES NECESARIAS
 # ================================
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
@@ -139,7 +139,7 @@ def restrict_familiar_access():
     allowed = {
         'home', 'login', 'logout', 'mi_perfil', 'ver_pacientes', 'buscar_pacientes',
         'historial_paciente', 'historial_paciente_nuevo', 'editar_historial', 'eliminar_historial',
-        'cambiar_contrasena', 'tabla_pacientes'
+        'cambiar_contrasena', 'tabla_pacientes', 'dashboard', 'semaforo'
     }
 
     # Si intenta acceder a otra endpoint, redirigirle a su perfil
@@ -176,7 +176,8 @@ def login():
         cur.close()
         conn.close()
     except Exception as e:
-        return f"Error al consultar usuarios: {e}"
+        print(f"Error al consultar usuarios: {e}")
+        return redirect(url_for("home", error="Error al autenticar usuario"))
 
     if row is None:
         return redirect(url_for("home", error="Usuario o contraseña incorrectos"))
@@ -291,8 +292,8 @@ def registro():
             return redirect(url_for("dashboard"))
 
         except Exception as e:
-            error_msg = f"Error en el registro: {str(e)}"
-            print(error_msg)
+            error_msg = "Error al registrar el usuario. Por favor inténtalo más tarde."
+            print(f"Error en registro: {e}")
             return render_template("registro.html", error=error_msg, pacientes=pacientes)
 
     # GET request - mostrar formulario con pacientes
@@ -310,50 +311,63 @@ def dashboard():
     username = session.get("username")
     user_role = session.get("tipo_usuario", "invitado")
 
-    # Contar pacientes
+    # Por defecto valores
+    total_pacientes = 0
+    criticos = 0
+    estables = 0
+    top_residentes = []
+    trend_labels = []
+    trend_criticos = []
+    trend_estables = []
+
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM pacientes;")
-        total_pacientes = cur.fetchone()[0] or 0
 
-        cur.execute("""
-            SELECT 
-                COUNT(CASE WHEN (l.temperatura_c < 35 OR l.temperatura_c > 39.5) 
-                          OR (l.ritmo_cardiaco < 40 OR l.ritmo_cardiaco > 130) THEN 1 END) as criticos,
-                COUNT(CASE WHEN (l.temperatura_c BETWEEN 36 AND 37.5) 
-                          AND (l.ritmo_cardiaco BETWEEN 60 AND 100) 
-                          AND l.esta_puesta = true THEN 1 END) as estables
-            FROM lecturas l
-            WHERE l.momento_lectura > NOW() - INTERVAL '24 hours';
-        """)
-        stats = cur.fetchone()
-        criticos = stats[0] if stats else 0
-        estables = stats[1] if stats else 0
+        # Si el usuario es familiar, limitar la vista al paciente asignado
+        if user_role == 'familiar':
+            assigned = get_assigned_patient_id(username)
+            if not assigned:
+                # Usuario familiar sin asignación
+                total_pacientes = 0
+                cur.close()
+                conn.close()
+                return render_template("dashboard.html",
+                                       username=username,
+                                       user_role=user_role,
+                                       total_pacientes=total_pacientes,
+                                       criticos=criticos,
+                                       estables=estables,
+                                       top_residentes=top_residentes,
+                                       trend_labels=trend_labels,
+                                       trend_criticos=trend_criticos,
+                                       trend_estables=trend_estables)
 
-        # TOP RESIDENTES: obtener los 5 pacientes con lecturas recientes, ordenados por severidad
-        try:
-            cur.execute("""
-                SELECT p.id_paciente, p.nombre, p.apellido_paterno, p.apellido_materno,
-                       pu.id_pulsera, l.temperatura_c, l.ritmo_cardiaco, l.momento_lectura,
-                       CASE
-                         WHEN (l.temperatura_c < 35 OR l.temperatura_c > 39.5) OR (l.ritmo_cardiaco < 40 OR l.ritmo_cardiaco > 130) THEN 1
-                         WHEN (l.temperatura_c BETWEEN 36 AND 37.5) AND (l.ritmo_cardiaco BETWEEN 60 AND 100) AND l.esta_puesta = true THEN 2
-                         ELSE 3
-                       END as severity
-                FROM pacientes p
-                LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
-                LEFT JOIN LATERAL (
-                    SELECT * FROM lecturas l
-                    WHERE l.id_pulsera = pu.id_pulsera
-                    ORDER BY l.momento_lectura DESC LIMIT 1
-                ) l ON TRUE
-                ORDER BY severity ASC NULLS LAST, l.momento_lectura DESC
-                LIMIT 5;
-            """)
-            top_rows = cur.fetchall()
-            top_residentes = []
-            for r in top_rows:
+            # total = 1 (su paciente)
+            total_pacientes = 1
+
+            # Buscar pulsera del paciente
+            cur.execute('SELECT id_pulsera FROM pulseras WHERE id_paciente = %s LIMIT 1;', (assigned,))
+            pul = cur.fetchone()
+            id_pulsera = pul[0] if pul else None
+
+            # Estadísticas (últimas 24h) solo para las lecturas de la pulsera asignada
+            if id_pulsera:
+                cur.execute("""
+                    SELECT 
+                        COUNT(CASE WHEN (temperatura_c < 35 OR temperatura_c > 39.5) OR (ritmo_cardiaco < 40 OR ritmo_cardiaco > 130) THEN 1 END) as criticos,
+                        COUNT(CASE WHEN (temperatura_c BETWEEN 36 AND 37.5) AND (ritmo_cardiaco BETWEEN 60 AND 100) AND esta_puesta = true THEN 1 END) as estables
+                    FROM lecturas l
+                    WHERE l.id_pulsera = %s AND l.momento_lectura > NOW() - INTERVAL '24 hours';
+                """, (id_pulsera,))
+                stats = cur.fetchone()
+                criticos = stats[0] if stats else 0
+                estables = stats[1] if stats else 0
+
+            # Top residente -> su propio paciente (si existe)
+            cur.execute("SELECT p.id_paciente, p.nombre, p.apellido_paterno, p.apellido_materno, pu.id_pulsera, l.temperatura_c, l.ritmo_cardiaco, l.momento_lectura FROM pacientes p LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente LEFT JOIN LATERAL (SELECT * FROM lecturas l WHERE l.id_pulsera = pu.id_pulsera ORDER BY l.momento_lectura DESC LIMIT 1) l ON TRUE WHERE p.id_paciente = %s;", (assigned,))
+            r = cur.fetchone()
+            if r:
                 nombre = f"{r[1]} {r[2]} {r[3]}".strip()
                 temp = r[5]
                 ritmo = r[6]
@@ -365,61 +379,181 @@ def dashboard():
                         estado = 'Estable'
                     else:
                         estado = 'Advertencia'
-                top_residentes.append({
+                top_residentes = [{
                     'id_paciente': r[0],
                     'nombre': nombre,
                     'id_pulsera': r[4] or 'Sin asignar',
                     'estado': estado,
                     'momento_lectura': r[7]
-                })
-        except Exception:
-            top_residentes = []
+                }]
 
-        # TENDENCIA: conteo por día de lecturas críticas y estables últimos 7 días
-        try:
+            # Tendencias: promedios de signos vitales por día en últimos 7 días para la pulsera (si existe)
+            try:
+                if id_pulsera:
+                    cur.execute("""
+                        SELECT date_trunc('day', momento_lectura) as dia,
+                               ROUND(AVG(temperatura_c), 1) as temp_promedio,
+                               ROUND(AVG(ritmo_cardiaco), 0) as ritmo_promedio
+                        FROM lecturas
+                        WHERE id_pulsera = %s AND momento_lectura > NOW() - INTERVAL '7 days'
+                          AND temperatura_c IS NOT NULL
+                          AND ritmo_cardiaco IS NOT NULL
+                        GROUP BY dia
+                        ORDER BY dia;
+                    """, (id_pulsera,))
+                else:
+                    # sin pulsera -> no hay lecturas
+                    rows = []
+                    cur.close()
+                    conn.close()
+                    trend_labels = []
+                    trend_temperatura = [36.5] * 7
+                    trend_ritmo = [75] * 7
+                    return render_template("dashboard.html",
+                                           username=username,
+                                           user_role=user_role,
+                                           total_pacientes=total_pacientes,
+                                           criticos=criticos,
+                                           estables=estables,
+                                           top_residentes=top_residentes,
+                                           trend_labels=trend_labels,
+                                           trend_temperatura=trend_temperatura,
+                                           trend_ritmo=trend_ritmo)
+
+                rows = cur.fetchall()
+                # usar timedelta importado a nivel de módulo
+                labels = []
+                temp_data = []
+                ritmo_data = []
+                today = datetime.now().date()
+                day_map = {r[0].date(): (r[1] or 36.5, r[2] or 75) for r in rows}
+                for i in range(6, -1, -1):
+                    d = today - timedelta(days=i)
+                    labels.append(d.strftime('%d/%m'))
+                    temp, ritmo = day_map.get(d, (36.5, 75))
+                    temp_data.append(float(temp))
+                    ritmo_data.append(int(ritmo))
+
+                trend_labels = labels
+                trend_temperatura = temp_data
+                trend_ritmo = ritmo_data
+
+            except Exception:
+                trend_labels = [(datetime.now().date() - timedelta(days=i)).strftime('%d/%m') for i in range(6, -1, -1)]
+                trend_temperatura = [36.5, 36.6, 36.4, 36.7, 36.5, 36.6, 36.5]
+                trend_ritmo = [75, 78, 72, 80, 76, 74, 77]
+
+        else:
+            # Usuario enfermero/medico/admin -> todo el sistema (comportamiento original)
+            # Obtener conteo total de pacientes
+            cur.execute("SELECT COUNT(*) FROM pacientes;")
+            total_pacientes = cur.fetchone()[0] or 0
+
+            # Estadísticas de últimas 24h (global)
             cur.execute("""
-                SELECT date_trunc('day', momento_lectura) as dia,
-                       COUNT(*) FILTER (WHERE (temperatura_c < 35 OR temperatura_c > 39.5) OR (ritmo_cardiaco < 40 OR ritmo_cardiaco > 130)) as criticos,
-                       COUNT(*) FILTER (WHERE (temperatura_c BETWEEN 36 AND 37.5) AND (ritmo_cardiaco BETWEEN 60 AND 100) AND esta_puesta = true) as estables
-                FROM lecturas
-                WHERE momento_lectura > NOW() - INTERVAL '7 days'
-                GROUP BY dia
-                ORDER BY dia;
+                SELECT 
+                    COUNT(CASE WHEN (l.temperatura_c < 35 OR l.temperatura_c > 39.5) 
+                              OR (l.ritmo_cardiaco < 40 OR l.ritmo_cardiaco > 130) THEN 1 END) as criticos,
+                    COUNT(CASE WHEN (l.temperatura_c BETWEEN 36 AND 37.5) AND (l.ritmo_cardiaco BETWEEN 60 AND 100) AND l.esta_puesta = true THEN 1 END) as estables
+                FROM lecturas l
+                WHERE l.momento_lectura > NOW() - INTERVAL '24 hours';
             """)
-            rows = cur.fetchall()
-            # prepare labels for the last 7 days
-            from datetime import timedelta
-            labels = []
-            crit_data = []
-            est_data = []
-            today = datetime.now().date()
-            day_map = {r[0].date(): (r[1] or 0, r[2] or 0) for r in rows}
-            for i in range(6, -1, -1):
-                d = today - timedelta(days=i)
-                labels.append(d.strftime('%d/%m'))
-                c,e = day_map.get(d, (0,0))
-                crit_data.append(c)
-                est_data.append(e)
-            trend_labels = labels
-            trend_criticos = crit_data
-            trend_estables = est_data
-        except Exception:
-            # fallback: ejemplo estático
-            trend_labels = [(datetime.now().date() - timedelta(days=i)).strftime('%d/%m') for i in range(6, -1, -1)]
-            trend_criticos = [0,1,0,2,1,0,0]
-            trend_estables = [2,3,4,2,3,5,4]
+            stats = cur.fetchone()
+            criticos = stats[0] if stats else 0
+            estables = stats[1] if stats else 0
+
+            # TOP RESIDENTES: lectura más reciente por paciente, ordenar por severidad y fecha
+            try:
+                cur.execute("""
+                    SELECT p.id_paciente, p.nombre, p.apellido_paterno, p.apellido_materno,
+                           pu.id_pulsera, l.temperatura_c, l.ritmo_cardiaco, l.momento_lectura
+                    FROM pacientes p
+                    LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
+                    LEFT JOIN LATERAL (
+                        SELECT * FROM lecturas l
+                        WHERE l.id_pulsera = pu.id_pulsera
+                        ORDER BY l.momento_lectura DESC LIMIT 1
+                    ) l ON TRUE
+                    ORDER BY
+                      (CASE WHEN (l.temperatura_c < 35 OR l.temperatura_c > 39.5) OR (l.ritmo_cardiaco < 40 OR l.ritmo_cardiaco > 130) THEN 1
+                            WHEN (l.temperatura_c BETWEEN 36 AND 37.5) AND (l.ritmo_cardiaco BETWEEN 60 AND 100) AND l.esta_puesta = true THEN 2
+                            ELSE 3 END) ASC NULLS LAST,
+                      l.momento_lectura DESC
+                    LIMIT 5;
+                """)
+                top_rows = cur.fetchall()
+                top_residentes = []
+                for r in top_rows:
+                    nombre = f"{r[1]} {r[2]} {r[3]}".strip()
+                    temp = r[5]
+                    ritmo = r[6]
+                    estado = 'N/A'
+                    if temp is not None and ritmo is not None:
+                        if (temp < 35 or temp > 39.5) or (ritmo < 40 or ritmo > 130):
+                            estado = 'Crítico'
+                        elif (36 <= temp <= 37.5) and (60 <= ritmo <= 100):
+                            estado = 'Estable'
+                        else:
+                            estado = 'Advertencia'
+                    top_residentes.append({
+                        'id_paciente': r[0],
+                        'nombre': nombre,
+                        'id_pulsera': r[4] or 'Sin asignar',
+                        'estado': estado,
+                        'momento_lectura': r[7]
+                    })
+            except Exception:
+                top_residentes = []
+
+            # Tendencias últimos 7 días (global) - PROMEDIOS DE SIGNOS VITALES
+            try:
+                cur.execute("""
+                    SELECT date_trunc('day', momento_lectura) as dia,
+                           ROUND(AVG(temperatura_c), 1) as temp_promedio,
+                           ROUND(AVG(ritmo_cardiaco), 0) as ritmo_promedio,
+                           COUNT(*) as num_lecturas
+                    FROM lecturas
+                    WHERE momento_lectura > NOW() - INTERVAL '7 days'
+                      AND temperatura_c IS NOT NULL
+                      AND ritmo_cardiaco IS NOT NULL
+                    GROUP BY dia
+                    ORDER BY dia;
+                """)
+                rows = cur.fetchall()
+                # usar timedelta importado a nivel de módulo
+                labels = []
+                temp_data = []
+                ritmo_data = []
+                today = datetime.now().date()
+                day_map = {r[0].date(): (r[1] or 36.5, r[2] or 75) for r in rows}
+                for i in range(6, -1, -1):
+                    d = today - timedelta(days=i)
+                    labels.append(d.strftime('%d/%m'))
+                    temp, ritmo = day_map.get(d, (36.5, 75))
+                    temp_data.append(float(temp))
+                    ritmo_data.append(int(ritmo))
+                trend_labels = labels
+                trend_temperatura = temp_data
+                trend_ritmo = ritmo_data
+            except Exception as ex:
+                print(f"Error en tendencias: {ex}")
+                from datetime import timedelta
+                trend_labels = [(datetime.now().date() - timedelta(days=i)).strftime('%d/%m') for i in range(6, -1, -1)]
+                trend_temperatura = [36.5, 36.6, 36.4, 36.7, 36.5, 36.6, 36.5]
+                trend_ritmo = [75, 78, 72, 80, 76, 74, 77]
 
         cur.close()
         conn.close()
 
     except Exception as e:
-        total_pacientes = 0
-        criticos = 0
-        estables = 0
-        top_residentes = []
-        trend_labels = []
-        trend_criticos = []
-        trend_estables = []
+        # si ocurre un error de BD, devolver valores por defecto y mostrar dashboard vacío/moderado
+        total_pacientes = total_pacientes or 0
+        criticos = criticos or 0
+        estables = estables or 0
+        top_residentes = top_residentes or []
+        trend_labels = trend_labels or []
+        trend_temperatura = trend_temperatura if 'trend_temperatura' in locals() else [36.5] * 7
+        trend_ritmo = trend_ritmo if 'trend_ritmo' in locals() else [75] * 7
 
     return render_template("dashboard.html",
                            username=username,
@@ -429,8 +563,8 @@ def dashboard():
                            estables=estables,
                            top_residentes=top_residentes,
                            trend_labels=trend_labels,
-                           trend_criticos=trend_criticos,
-                           trend_estables=trend_estables)
+                           trend_temperatura=trend_temperatura,
+                           trend_ritmo=trend_ritmo)
 
 
 # ================================
@@ -548,7 +682,8 @@ def ver_pacientes():
         cur.close()
         conn.close()
     except Exception as e:
-        return f"<h3>Error al consultar pacientes: {e}</h3>"
+        print(f"Error al consultar pacientes: {e}")
+        return render_template("tabla_pacientes.html", username=session.get("username"), pacientes=[])
 
     def calcular_edad(fecha_nacimiento):
         if not fecha_nacimiento:
@@ -695,7 +830,8 @@ def buscar_pacientes():
                 })
 
         except Exception as e:
-            return f"<h3>Error en la búsqueda: {e}</h3>"
+            print(f"Error en la búsqueda: {e}")
+            return render_template("buscar_pacientes.html", username=session.get("username"), pacientes=[], busqueda=busqueda, estado_filtro=estado_filtro, tiene_pulsera=tiene_pulsera, total_resultados=0)
 
     return render_template(
         "buscar_pacientes.html",
@@ -730,116 +866,349 @@ def agregar_paciente():
                                    username=session.get("username"))
 
         try:
+            conn = None
             conn = get_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO pacientes (nombre, apellido_paterno, apellido_materno, fecha_nacimiento)
-                VALUES (%s, %s, %s, %s) RETURNING id_paciente;
-            """, (nombre, apellido_paterno, apellido_materno, fecha_nacimiento if fecha_nacimiento else None))
+                 INSERT INTO pacientes (nombre, apellido_paterno, apellido_materno, fecha_nacimiento)
+                 VALUES (%s, %s, %s, %s) RETURNING id_paciente;
+             """, (nombre, apellido_paterno, apellido_materno, fecha_nacimiento if fecha_nacimiento else None))
 
             id_paciente = cur.fetchone()[0]
 
-            if asignar_pulsera and id_pulsera:
-                cur.execute("SELECT 1 FROM pulseras WHERE id_pulsera = %s;", (int(id_pulsera),))
+            # Si se pide asignar pulsera, y no se proporcionó id_pulsera, usar el id_paciente como id_pulsera
+            if asignar_pulsera:
+                if not id_pulsera:
+                    id_pulsera_to_use = int(id_paciente)
+                else:
+                    id_pulsera_to_use = int(id_pulsera)
+
+                # Verificar conflicto (si la pulsera ya existe)
+                cur.execute("SELECT 1 FROM pulseras WHERE id_pulsera = %s;", (id_pulsera_to_use,))
                 if cur.fetchone():
                     conn.rollback()
                     cur.close()
                     conn.close()
                     return render_template("agregar_paciente.html",
-                                           error=f"La pulsera {id_pulsera} ya está asignada",
+                                           error=f"La pulsera {id_pulsera_to_use} ya está asignada",
                                            username=session.get("username"))
 
                 cur.execute("""
                     INSERT INTO pulseras (id_pulsera, id_paciente, fecha_asignacion)
                     VALUES (%s, %s, NOW());
-                """, (int(id_pulsera), id_paciente))
+                """, (id_pulsera_to_use, id_paciente))
 
+            # Commit y cerrar
             conn.commit()
             cur.close()
             conn.close()
             return redirect(url_for("ver_pacientes"))
 
         except ValueError:
+            # Error al convertir id_pulsera a int
+            try:
+                if conn is not None:
+                    conn.rollback()
+            except Exception:
+                pass
             return render_template("agregar_paciente.html",
                                    error="El ID de pulsera debe ser un número válido",
                                    username=session.get("username"))
         except Exception as e:
+            try:
+                if conn is not None:
+                    conn.rollback()
+            except Exception:
+                pass
+            print(f"Error al guardar paciente: {e}")
             return render_template("agregar_paciente.html",
-                                   error=f"Error al guardar: {str(e)}",
+                                   error="Error al guardar el paciente. Por favor inténtalo más tarde.",
                                    username=session.get("username"))
 
+    # GET
     return render_template("agregar_paciente.html", username=session.get("username"))
 
 
 # ================================
-#   ASIGNAR PULSERA A PACIENTE EXISTENTE
+#   HISTORIAL MÉDICO DE PACIENTE
 # ================================
-@app.route("/asignar-pulsera/<int:id_paciente>", methods=["GET", "POST"])
-def asignar_pulsera(id_paciente):
+@app.route("/historial-paciente/<int:id_paciente>")
+def historial_paciente(id_paciente):
     if not is_logged_in():
         return redirect(url_for("home"))
 
-    if request.method == "POST":
-        id_pulsera = request.form.get("id_pulsera", "").strip()
+    username = session.get('username')
+    user_role = session.get('tipo_usuario', 'invitado')
 
-        if not id_pulsera:
-            return render_template("asignar_pulsera.html",
-                                   error="El ID de pulsera es requerido",
-                                   username=session.get("username"),
-                                   id_paciente=id_paciente)
+    # Si es familiar, verificar que tenga acceso a este paciente
+    if user_role == 'familiar':
+        assigned = get_assigned_patient_id(username)
+        if not assigned or assigned != id_paciente:
+            return render_template('historial_paciente.html',
+                                   error="No tienes permiso para ver este paciente",
+                                   paciente=None, entries=[])
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        # Obtener información del paciente
+        cur.execute("""
+            SELECT id_paciente, nombre, apellido_paterno, apellido_materno, fecha_nacimiento
+            FROM pacientes
+            WHERE id_paciente = %s;
+        """, (id_paciente,))
+        paciente = cur.fetchone()
+
+        if not paciente:
+            cur.close()
+            conn.close()
+            return render_template('historial_paciente.html',
+                                   error="Paciente no encontrado",
+                                   paciente=None, entries=[])
+
+        # Obtener historial médico del paciente
+        cur.execute("""
+            SELECT id_historial, titulo, descripcion, creado_por, fecha
+            FROM historial_medico
+            WHERE id_paciente = %s
+            ORDER BY fecha DESC;
+        """, (id_paciente,))
+        entries_raw = cur.fetchall()
+
+        # Preparar las entradas con permisos de edición
+        entries = []
+        for e in entries_raw:
+            can_edit = user_role in ['enfermero', 'medico', 'admin']
+            entries.append({
+                'id_historial': e['id_historial'],
+                'titulo': e['titulo'],
+                'descripcion': e['descripcion'],
+                'creado_por': e['creado_por'],
+                'fecha': e['fecha'].strftime('%d/%m/%Y %H:%M') if e['fecha'] else '',
+                'can_edit': can_edit
+            })
+
+        cur.close()
+        conn.close()
+
+        return render_template('historial_paciente.html',
+                               paciente=paciente,
+                               entries=entries)
+
+    except Exception as e:
+        print(f"Error al cargar historial: {e}")
+        return render_template('historial_paciente.html',
+                               error="Error al cargar el historial",
+                               paciente=None, entries=[])
+
+
+# ================================
+#   NUEVA ENTRADA DE HISTORIAL
+# ================================
+@app.route("/historial-paciente/<int:id_paciente>/nuevo", methods=["GET", "POST"])
+def historial_paciente_nuevo(id_paciente):
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    user_role = session.get('tipo_usuario', 'invitado')
+    username = session.get('username')
+
+    # Solo enfermeros/médicos/admin pueden crear entradas
+    if user_role not in ['enfermero', 'medico', 'admin']:
+        return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+
+    if request.method == "POST":
+        titulo = request.form.get("titulo", "").strip()
+        descripcion = request.form.get("descripcion", "").strip()
+
+        if not titulo:
+            return render_template('historial_paciente_form.html',
+                                   id_paciente=id_paciente,
+                                   error="El título es obligatorio",
+                                   titulo=titulo, descripcion=descripcion)
 
         try:
             conn = get_connection()
             cur = conn.cursor()
-            cur.execute("SELECT 1 FROM pacientes WHERE id_paciente = %s;", (id_paciente,))
-            if not cur.fetchone():
-                cur.close()
-                conn.close()
-                return render_template("asignar_pulsera.html",
-                                       error="Paciente no encontrado",
-                                       username=session.get("username"),
-                                       id_paciente=id_paciente)
-
-            cur.execute("SELECT 1 FROM pulseras WHERE id_pulsera = %s;", (int(id_pulsera),))
-            if cur.fetchone():
-                cur.close()
-                conn.close()
-                return render_template("asignar_pulsera.html",
-                                       error=f"La pulsera {id_pulsera} ya está asignada",
-                                       username=session.get("username"),
-                                       id_paciente=id_paciente)
-
-            cur.execute("SELECT 1 FROM pulseras WHERE id_paciente = %s;", (id_paciente,))
-            if cur.fetchone():
-                cur.execute("UPDATE pulseras SET id_pulsera = %s, fecha_asignacion = NOW() WHERE id_paciente = %s;",
-                            (int(id_pulsera), id_paciente))
-            else:
-                cur.execute("INSERT INTO pulseras (id_pulsera, id_paciente, fecha_asignacion) VALUES (%s, %s, NOW());",
-                            (int(id_pulsera), id_paciente))
-
+            cur.execute("""
+                INSERT INTO historial_medico (id_paciente, titulo, descripcion, creado_por, fecha)
+                VALUES (%s, %s, %s, %s, NOW());
+            """, (id_paciente, titulo, descripcion, username))
             conn.commit()
             cur.close()
             conn.close()
-            return redirect(url_for("ver_pacientes"))
-
-        except ValueError:
-            return render_template("asignar_pulsera.html",
-                                   error="El ID de pulsera debe ser un número",
-                                   username=session.get("username"),
-                                   id_paciente=id_paciente)
+            return redirect(url_for('historial_paciente', id_paciente=id_paciente))
         except Exception as e:
-            return render_template("asignar_pulsera.html",
-                                   error=f"Error: {str(e)}",
-                                   username=session.get("username"),
-                                   id_paciente=id_paciente)
+            print(f"Error al crear entrada de historial: {e}")
+            return render_template('historial_paciente_form.html',
+                                   id_paciente=id_paciente,
+                                   error="Error al guardar la entrada",
+                                   titulo=titulo, descripcion=descripcion)
 
-    return render_template("asignar_pulsera.html",
-                           username=session.get("username"),
-                           id_paciente=id_paciente)
+    # GET - mostrar formulario
+    return render_template('historial_paciente_form.html', id_paciente=id_paciente)
 
 
 # ================================
-#   SEMÁFORO
+#   EDITAR ENTRADA DE HISTORIAL
+# ================================
+@app.route("/historial-paciente/<int:id_paciente>/editar/<int:id_historial>", methods=["GET", "POST"])
+def editar_historial(id_paciente, id_historial):
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    user_role = session.get('tipo_usuario', 'invitado')
+
+    # Solo enfermeros/médicos/admin pueden editar
+    if user_role not in ['enfermero', 'medico', 'admin']:
+        return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        if request.method == "POST":
+            titulo = request.form.get("titulo", "").strip()
+            descripcion = request.form.get("descripcion", "").strip()
+
+            if not titulo:
+                cur.execute("SELECT titulo, descripcion FROM historial_medico WHERE id_historial = %s;", (id_historial,))
+                entry = cur.fetchone()
+                cur.close()
+                conn.close()
+                return render_template('historial_paciente_form.html',
+                                       id_paciente=id_paciente,
+                                       id_historial=id_historial,
+                                       error="El título es obligatorio",
+                                       titulo=titulo, descripcion=descripcion)
+
+            cur.execute("""
+                UPDATE historial_medico
+                SET titulo = %s, descripcion = %s
+                WHERE id_historial = %s AND id_paciente = %s;
+            """, (titulo, descripcion, id_historial, id_paciente))
+            conn.commit()
+            cur.close()
+            conn.close()
+            return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+
+        # GET - cargar datos existentes
+        cur.execute("SELECT titulo, descripcion FROM historial_medico WHERE id_historial = %s;", (id_historial,))
+        entry = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not entry:
+            return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+
+        return render_template('historial_paciente_form.html',
+                               id_paciente=id_paciente,
+                               id_historial=id_historial,
+                               titulo=entry['titulo'],
+                               descripcion=entry['descripcion'])
+
+    except Exception as e:
+        print(f"Error al editar historial: {e}")
+        return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+
+
+# ================================
+#   ELIMINAR ENTRADA DE HISTORIAL
+# ================================
+@app.route("/historial-paciente/<int:id_paciente>/eliminar/<int:id_historial>", methods=["POST"])
+def eliminar_historial(id_paciente, id_historial):
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    user_role = session.get('tipo_usuario', 'invitado')
+
+    # Solo enfermeros/médicos/admin pueden eliminar
+    if user_role not in ['enfermero', 'medico', 'admin']:
+        return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM historial_medico WHERE id_historial = %s AND id_paciente = %s;",
+                    (id_historial, id_paciente))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error al eliminar entrada de historial: {e}")
+
+    return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+
+
+# ================================
+#   CAMBIAR CONTRASEÑA
+# ================================
+@app.route("/cambiar-contrasena", methods=["GET", "POST"])
+def cambiar_contrasena():
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    username = session.get('username')
+
+    if request.method == "POST":
+        password_actual = request.form.get("password_actual", "")
+        password_nueva = request.form.get("password_nueva", "")
+        password_confirmar = request.form.get("password_confirmar", "")
+
+        if not password_actual or not password_nueva:
+            return render_template("cambiar_contrasena.html",
+                                   username=username,
+                                   error="Todos los campos son obligatorios")
+
+        if password_nueva != password_confirmar:
+            return render_template("cambiar_contrasena.html",
+                                   username=username,
+                                   error="Las contraseñas nuevas no coinciden")
+
+        if len(password_nueva) < 6:
+            return render_template("cambiar_contrasena.html",
+                                   username=username,
+                                   error="La contraseña debe tener al menos 6 caracteres")
+
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+
+            # Verificar contraseña actual
+            cur.execute("SELECT password_hash FROM usuarios WHERE username = %s;", (username,))
+            row = cur.fetchone()
+
+            if not row or not check_password(password_actual, row[0]):
+                cur.close()
+                conn.close()
+                return render_template("cambiar_contrasena.html",
+                                       username=username,
+                                       error="Contraseña actual incorrecta")
+
+            # Actualizar contraseña
+            nueva_hash = hash_password(password_nueva)
+            cur.execute("UPDATE usuarios SET password_hash = %s WHERE username = %s;",
+                        (nueva_hash, username))
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            return render_template("cambiar_contrasena.html",
+                                   username=username,
+                                   success="Contraseña actualizada correctamente")
+
+        except Exception as e:
+            print(f"Error al cambiar contraseña: {e}")
+            return render_template("cambiar_contrasena.html",
+                                   username=username,
+                                   error="Error al cambiar la contraseña")
+
+    return render_template("cambiar_contrasena.html", username=username)
+
+
+# ================================
+#   SEMÁFORO - VISTA DE ESTADO GLOBAL
 # ================================
 @app.route("/semaforo")
 def semaforo():
@@ -849,9 +1218,13 @@ def semaforo():
     username = session.get('username')
     user_role = session.get('tipo_usuario', 'invitado')
 
+    pacientes = []
+
+    # Query similar a la usada en ver_pacientes/buscar_pacientes: lectura más reciente por pulsera
     query = """
-        SELECT p.id_paciente, p.nombre, p.apellido_paterno, p.apellido_materno,
-               pu.id_pulsera, l.ritmo_cardiaco, l.temperatura_c, l.esta_puesta, l.momento_lectura
+        SELECT DISTINCT p.id_paciente, p.nombre, p.apellido_paterno, p.apellido_materno,
+               p.fecha_nacimiento, pu.id_pulsera, l.ritmo_cardiaco, l.temperatura_c,
+               l.esta_puesta, l.momento_lectura
         FROM pacientes p
         LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
         LEFT JOIN LATERAL (
@@ -859,19 +1232,22 @@ def semaforo():
             WHERE l.id_pulsera = pu.id_pulsera
             ORDER BY l.momento_lectura DESC LIMIT 1
         ) l ON TRUE
+        WHERE 1=1
+        ORDER BY p.id_paciente;
     """
 
     params = []
-    if user_role == 'familiar':
-        assigned = get_assigned_patient_id(username)
-        if not assigned:
-            return render_template('semaforo.html', username=username, pacientes=[])
-        query += " WHERE p.id_paciente = %s"
-        params.append(assigned)
-
-    query += " ORDER BY p.id_paciente;"
 
     try:
+        # Si es familiar, limitar a su paciente asignado
+        if user_role == 'familiar':
+            assigned = get_assigned_patient_id(username)
+            if not assigned:
+                # usuario familiar sin asignación -> lista vacía
+                return render_template('semaforo.html', username=username, pacientes=[])
+            query = query.replace('\n        WHERE 1=1\n', '\n        WHERE p.id_paciente = %s\n')
+            params.append(int(assigned))
+
         conn = get_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         if params:
@@ -881,400 +1257,233 @@ def semaforo():
         rows = cur.fetchall()
         cur.close()
         conn.close()
+
+        for r in rows:
+            nombre_completo = f"{r['nombre']} {r['apellido_paterno']} {r['apellido_materno']}".strip()
+            temp = r['temperatura_c']
+            ritmo = r['ritmo_cardiaco']
+            esta_puesta = r['esta_puesta']
+
+            estado = 'azul'
+            if temp is not None and ritmo is not None:
+                if (temp < 35 or temp > 39.5) or (ritmo < 40 or ritmo > 130):
+                    estado = 'rojo'
+                elif (36 <= temp <= 37.5) and (60 <= ritmo <= 100) and esta_puesta:
+                    estado = 'verde'
+                else:
+                    estado = 'azul'
+
+            pacientes.append({
+                'id_paciente': r['id_paciente'],
+                'nombre': nombre_completo,
+                'id_pulsera': r['id_pulsera'] if r['id_pulsera'] is not None else 'Sin asignar',
+                'temperatura_c': temp,
+                'ritmo_cardiaco': ritmo,
+                'esta_puesta': esta_puesta,
+                'momento_lectura': r['momento_lectura'],
+                'estado': estado,
+                'estado_texto': {'rojo': 'Crítico', 'verde': 'Estable', 'azul': 'Advertencia'}[estado]
+            })
+
     except Exception as e:
-        return f"<h3>Error al consultar semáforo: {e}</h3>"
+        # En caso de error de BD devolvemos lista vacía y lo registramos
+        print(f"Error en semaforo: {e}")
+        pacientes = []
 
-    pacientes_con_estado = []
-    for r in rows:
-        nombre_completo = f"{r['nombre']} {r['apellido_paterno']} {r['apellido_materno']}"
-        temp = r["temperatura_c"]
-        ritmo = r["ritmo_cardiaco"]
-        esta_puesta = r["esta_puesta"]
-        estado = "azul"
-
-        if temp is not None and ritmo is not None:
-            if (temp < 35 or temp > 39.5) or (ritmo < 40 or ritmo > 130):
-                estado = "rojo"
-            elif (36 <= temp <= 37.5) and (60 <= ritmo <= 100) and esta_puesta:
-                estado = "verde"
-            else:
-                estado = "azul"
-
-        pacientes_con_estado.append({
-            "id_paciente": r["id_paciente"],
-            "nombre": nombre_completo,
-            "id_pulsera": r["id_pulsera"] or "Sin asignar",
-            "ritmo_cardiaco": ritmo,
-            "temperatura_c": temp,
-            "esta_puesta": esta_puesta,
-            "momento_lectura": r["momento_lectura"],
-            "estado": estado,
-            "estado_texto": {"rojo": "Crítico", "verde": "Estable", "azul": "Advertencia"}[estado]
-        })
-
-    return render_template("semaforo.html",
-                           username=session.get("username"),
-                           pacientes=pacientes_con_estado)
+    return render_template('semaforo.html', username=username, pacientes=pacientes)
 
 
 # ================================
-#   API PARA PULSERAS
+#   API JSON PARA PULSERAS/SENSORES
 # ================================
+
 @app.route("/pulsera/<int:id_pulsera>/lectura", methods=["POST"])
-def insertar_lectura_pulsera(id_pulsera):
-    data = request.get_json(silent=True)
-    if data is None:
-        return jsonify({"error": "Body debe ser JSON"}), 400
-
-    ritmo_cardiaco = data.get("ritmo_cardiaco")
-    temperatura_c = data.get("temperatura_c")
-    esta_puesta = data.get("esta_puesta")
-    comentario = data.get("comentario", None)
-
-    if ritmo_cardiaco is None or temperatura_c is None:
-        return jsonify({"error": "Faltan campos: 'ritmo_cardiaco', 'temperatura_c'"}), 400
-
+def registrar_lectura(id_pulsera):
+    """
+    Endpoint para que las pulseras envíen lecturas de sensores.
+    Body JSON: {
+        "ritmo_cardiaco": int,
+        "temperatura_c": float,
+        "esta_puesta": bool
+    }
+    """
     try:
+        data = request.get_json()
+
+        if not data:
+            return {"error": "No se recibieron datos JSON"}, 400
+
+        ritmo_cardiaco = data.get("ritmo_cardiaco")
+        temperatura_c = data.get("temperatura_c")
+        esta_puesta = data.get("esta_puesta")
+
+        # Validaciones básicas
+        if ritmo_cardiaco is None or temperatura_c is None or esta_puesta is None:
+            return {"error": "Faltan campos requeridos: ritmo_cardiaco, temperatura_c, esta_puesta"}, 400
+
+        # Verificar que la pulsera existe
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO lecturas (id_pulsera, ritmo_cardiaco, temperatura_c, esta_puesta, comentario)
-            VALUES (%s, %s, %s, %s, %s) RETURNING id_lectura, momento_lectura;
-        """, (id_pulsera, ritmo_cardiaco, temperatura_c, esta_puesta, comentario))
+        cur.execute("SELECT id_paciente FROM pulseras WHERE id_pulsera = %s;", (id_pulsera,))
+        pulsera = cur.fetchone()
 
-        row = cur.fetchone()
+        if not pulsera:
+            cur.close()
+            conn.close()
+            return {"error": f"Pulsera {id_pulsera} no encontrada"}, 404
+
+        # Insertar lectura (momento_lectura se auto-genera con DEFAULT NOW())
+        cur.execute("""
+            INSERT INTO lecturas (id_pulsera, ritmo_cardiaco, temperatura_c, esta_puesta)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id_lectura, momento_lectura;
+        """, (id_pulsera, ritmo_cardiaco, temperatura_c, esta_puesta))
+
+        result = cur.fetchone()
+        id_lectura = result[0]
+        momento_lectura = result[1]
+
         conn.commit()
         cur.close()
         conn.close()
 
-        return jsonify({
-            "message": "Lectura insertada",
+        return {
+            "success": True,
+            "id_lectura": id_lectura,
             "id_pulsera": id_pulsera,
-            "id_lectura": row[0],
-            "momento_lectura": row[1].isoformat()
-        }), 201
+            "momento_lectura": momento_lectura.isoformat() if momento_lectura else None,
+            "mensaje": "Lectura registrada correctamente"
+        }, 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Error al registrar lectura: {e}")
+        return {"error": "Error interno al procesar la lectura", "detalle": str(e)}, 500
+
+
+@app.route("/pulsera/<int:id_pulsera>/lecturas", methods=["GET"])
+def obtener_lecturas(id_pulsera):
+    """
+    Endpoint para obtener lecturas de una pulsera.
+    Query params:
+        - limit: número máximo de lecturas (default 10, max 100)
+    """
+    try:
+        # Obtener parámetro limit
+        limit = request.args.get("limit", "10")
+        try:
+            limit = int(limit)
+            if limit < 1:
+                limit = 10
+            elif limit > 100:
+                limit = 100
+        except ValueError:
+            limit = 10
+
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        # Verificar que la pulsera existe
+        cur.execute("SELECT id_paciente FROM pulseras WHERE id_pulsera = %s;", (id_pulsera,))
+        pulsera = cur.fetchone()
+
+        if not pulsera:
+            cur.close()
+            conn.close()
+            return {"error": f"Pulsera {id_pulsera} no encontrada"}, 404
+
+        # Obtener lecturas
+        cur.execute("""
+            SELECT id_lectura, ritmo_cardiaco, temperatura_c, esta_puesta, momento_lectura
+            FROM lecturas
+            WHERE id_pulsera = %s
+            ORDER BY momento_lectura DESC
+            LIMIT %s;
+        """, (id_pulsera, limit))
+
+        lecturas_raw = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        # Formatear respuesta
+        lecturas = []
+        for l in lecturas_raw:
+            lecturas.append({
+                "id_lectura": l["id_lectura"],
+                "ritmo_cardiaco": l["ritmo_cardiaco"],
+                "temperatura_c": float(l["temperatura_c"]) if l["temperatura_c"] is not None else None,
+                "esta_puesta": l["esta_puesta"],
+                "momento_lectura": l["momento_lectura"].isoformat() if l["momento_lectura"] else None
+            })
+
+        return {
+            "id_pulsera": id_pulsera,
+            "total_lecturas": len(lecturas),
+            "lecturas": lecturas
+        }, 200
+
+    except Exception as e:
+        print(f"Error al obtener lecturas: {e}")
+        return {"error": "Error interno al obtener lecturas", "detalle": str(e)}, 500
 
 
 # ================================
-#   RUTAS DE PRUEBA
+#   DEBUG/TESTING ENDPOINTS
 # ================================
+
 @app.route("/debug-conn")
 def debug_conn():
+    """Endpoint para probar la conexión a la base de datos"""
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT NOW();")
-        now = cur.fetchone()
+        cur.execute("SELECT version();")
+        version = cur.fetchone()[0]
+
+        # Contar registros en tablas principales
+        cur.execute("SELECT COUNT(*) FROM pacientes;")
+        count_pacientes = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM pulseras;")
+        count_pulseras = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM lecturas;")
+        count_lecturas = cur.fetchone()[0]
+
         cur.close()
         conn.close()
-        return f"✅ Conexión exitosa a PostgreSQL<br>Fecha/Hora del servidor: {now[0]}"
+
+        return {
+            "status": "OK",
+            "database_version": version,
+            "estadisticas": {
+                "pacientes": count_pacientes,
+                "pulseras": count_pulseras,
+                "lecturas": count_lecturas
+            }
+        }, 200
+
     except Exception as e:
-        return f"❌ Error al conectar: {e}"
-
-
-@app.route("/test")
-def test():
-    return "✅ Servidor funcionando"
+        return {
+            "status": "ERROR",
+            "error": str(e)
+        }, 500
 
 
 @app.route("/sensor")
 def sensor():
-    try:
-        connection = get_connection()
-        cursor = connection.cursor()
-        cursor.execute("SELECT NOW();")
-        result = cursor.fetchone()
-        cursor.close()
-        connection.close()
-        return f"Current Time: {result}"
-    except Exception as e:
-        return f"Failed to connect: {e}"
+    """Endpoint legacy para probar conexión (mantener compatibilidad)"""
+    return debug_conn()
 
 
-# ================================
-#   CAMBIAR CONTRASEÑA
-# ================================
-@app.route("/cambiar-contrasena", methods=["GET", "POST"])
-def cambiar_contrasena():
-    # Sólo para usuarios autenticados
-    if not is_logged_in():
-        return redirect(url_for("home"))
-
-    username = session.get("username")
-
-    if request.method == "POST":
-        current = request.form.get("current_password", "")
-        new = request.form.get("new_password", "")
-        confirm = request.form.get("confirm_password", "")
-
-        # Validaciones básicas
-        if not current or not new or not confirm:
-            return render_template("cambiar_contrasena.html", error="Todos los campos son obligatorios", username=username)
-
-        if new != confirm:
-            return render_template("cambiar_contrasena.html", error="Las nuevas contraseñas no coinciden", username=username)
-
-        if len(new) < 6:
-            return render_template("cambiar_contrasena.html", error="La contraseña debe tener al menos 6 caracteres", username=username)
-
-        try:
-            conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("SELECT password_hash FROM usuarios WHERE username = %s;", (username,))
-            row = cur.fetchone()
-            if not row:
-                cur.close()
-                conn.close()
-                return render_template("cambiar_contrasena.html", error="Usuario no encontrado", username=username)
-
-            stored_hash = row[0]
-            # Verificar contraseña actual
-            if not check_password(current, stored_hash):
-                cur.close()
-                conn.close()
-                return render_template("cambiar_contrasena.html", error="La contraseña actual es incorrecta", username=username)
-
-            # Hashear y actualizar
-            new_hash = hash_password(new)
-            cur.execute("UPDATE usuarios SET password_hash = %s WHERE username = %s;", (new_hash, username))
-            conn.commit()
-            cur.close()
-            conn.close()
-
-            return render_template("cambiar_contrasena.html", success="Contraseña actualizada con éxito", username=username)
-
-        except Exception as e:
-            try:
-                if 'conn' in locals() and conn:
-                    conn.rollback()
-            except Exception:
-                pass
-            return render_template("cambiar_contrasena.html", error=f"Error al actualizar la contraseña: {e}", username=username)
-
-    # GET
-    return render_template("cambiar_contrasena.html", username=username)
-
-
-# ================================
-#   HISTORIAL MÉDICO POR PACIENTE
-# ================================
-@app.route('/paciente/<int:id_paciente>/historial')
-def historial_paciente(id_paciente):
-    if not is_logged_in():
-        return redirect(url_for('home'))
-
-    username = session.get('username')
-    tipo = session.get('tipo_usuario')
-
-    # permiso de visualización
-    if not user_can_view_historial(username, tipo, id_paciente):
-        return render_template('historial_paciente.html', error='No tienes permisos para ver el historial de este paciente', paciente=None, entries=[], username=username)
-
-    try:
-        conn = get_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        # Obtener paciente
-        cur.execute("SELECT id_paciente, nombre, apellido_paterno, apellido_materno FROM pacientes WHERE id_paciente = %s;", (id_paciente,))
-        paciente = cur.fetchone()
-        if not paciente:
-            cur.close()
-            conn.close()
-            return render_template('historial_paciente.html', error='Paciente no encontrado', paciente=None, entries=[] , username=username)
-
-        # Obtener entradas del historial
-        cur.execute("SELECT id_historial, titulo, descripcion, creado_por, fecha FROM historial_medico WHERE id_paciente = %s ORDER BY fecha DESC;", (id_paciente,))
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
-
-        entries = []
-        for r in rows:
-            hid = r['id_historial']
-            can_edit = user_can_edit_historial(username, tipo, hid)
-            entries.append({
-                'id_historial': hid,
-                'titulo': r['titulo'],
-                'descripcion': r['descripcion'],
-                'creado_por': r['creado_por'],
-                'fecha': r['fecha'],
-                'can_edit': can_edit,
-                'can_delete': can_edit
-            })
-
-        return render_template('historial_paciente.html', paciente=paciente, entries=entries, username=session.get('username'))
-
-    except Exception as e:
-        return render_template('historial_paciente.html', error=str(e), paciente=None, entries=[], username=session.get('username'))
-
-
-@app.route('/paciente/<int:id_paciente>/historial/nuevo', methods=['GET', 'POST'])
-def historial_paciente_nuevo(id_paciente):
-    if not is_logged_in():
-        return redirect(url_for('home'))
-
-    username = session.get('username')
-    tipo = session.get('tipo_usuario')
-
-    # sólo ciertos roles pueden crear entradas
-    if tipo not in ('enfermero', 'medico', 'admin'):
-        return render_template('historial_paciente.html', error='No tienes permisos para crear entradas en el historial', paciente=None, entries=[], username=username)
-
-    if request.method == 'POST':
-        titulo = request.form.get('titulo', '').strip()
-        descripcion = request.form.get('descripcion', '').strip()
-        creado_por = session.get('username')
-
-        if not titulo:
-            return render_template('historial_paciente_form.html', error='El título es requerido', paciente_id=id_paciente, username=session.get('username'))
-
-        try:
-            conn = get_connection()
-            cur = conn.cursor()
-            cur.execute('SELECT 1 FROM pacientes WHERE id_paciente = %s;', (id_paciente,))
-            if not cur.fetchone():
-                cur.close()
-                conn.close()
-                return render_template('historial_paciente_form.html', error='Paciente no encontrado', paciente_id=id_paciente, username=session.get('username'))
-
-            cur.execute('INSERT INTO historial_medico (id_paciente, titulo, descripcion, creado_por) VALUES (%s, %s, %s, %s);',
-                        (id_paciente, titulo, descripcion, creado_por))
-            conn.commit()
-            cur.close()
-            conn.close()
-            return redirect(url_for('historial_paciente', id_paciente=id_paciente))
-
-        except Exception as e:
-            try:
-                if 'conn' in locals() and conn:
-                    conn.rollback()
-            except Exception:
-                pass
-            return render_template('historial_paciente_form.html', error=str(e), paciente_id=id_paciente, username=session.get('username'))
-
-    # GET
-    return render_template('historial_paciente_form.html', paciente_id=id_paciente, username=session.get('username'))
-
-
-# ================================
-#   PERMISOS PARA HISTORIAL
-# ================================
-
-def user_can_view_historial(username, tipo_usuario, id_paciente):
-    # enfermero y medico pueden ver todo. Familiar sólo puede ver si está asignado al paciente
-    if tipo_usuario in ('enfermero', 'medico', 'admin'):
-        return True
-    if tipo_usuario == 'familiar':
-        try:
-            conn = get_connection()
-            cur = conn.cursor()
-            cur.execute('SELECT 1 FROM usuarios WHERE username = %s AND id_paciente_asignado = %s;', (username, id_paciente))
-            ok = cur.fetchone() is not None
-            cur.close()
-            conn.close()
-            return ok
-        except Exception:
-            return False
-    return False
-
-
-def user_can_edit_historial(username, tipo_usuario, id_historial):
-    # enfermero/medico/admin pueden editar todo. Creador puede editar su propia entrada.
-    if tipo_usuario in ('enfermero', 'medico', 'admin'):
-        return True
-    try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute('SELECT creado_por FROM historial_medico WHERE id_historial = %s;', (id_historial,))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-        if not row:
-            return False
-        creado_por = row[0]
-        return creado_por == username
-    except Exception:
-        return False
-
-
-@app.route('/paciente/<int:id_paciente>/historial/<int:id_historial>/editar', methods=['GET', 'POST'])
-def editar_historial(id_paciente, id_historial):
-    if not is_logged_in():
-        return redirect(url_for('home'))
-    username = session.get('username')
-    tipo = session.get('tipo_usuario')
-
-    if not user_can_edit_historial(username, tipo, id_historial):
-        return render_template('historial_paciente.html', error='No tienes permisos para editar esta entrada', paciente=None, entries=[], username=username)
-
-    if request.method == 'POST':
-        titulo = request.form.get('titulo', '').strip()
-        descripcion = request.form.get('descripcion', '').strip()
-        if not titulo:
-            return render_template('historial_paciente_form.html', error='El título es requerido', paciente_id=id_paciente, username=username)
-        try:
-            conn = get_connection()
-            cur = conn.cursor()
-            cur.execute('UPDATE historial_medico SET titulo = %s, descripcion = %s WHERE id_historial = %s AND id_paciente = %s;', (titulo, descripcion, id_historial, id_paciente))
-            conn.commit()
-            cur.close()
-            conn.close()
-            return redirect(url_for('historial_paciente', id_paciente=id_paciente))
-        except Exception as e:
-            try:
-                if 'conn' in locals() and conn:
-                    conn.rollback()
-            except Exception:
-                pass
-            return render_template('historial_paciente_form.html', error=str(e), paciente_id=id_paciente, username=username)
-
-    # GET: cargar la entrada existente
-    try:
-        conn = get_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute('SELECT id_historial, titulo, descripcion FROM historial_medico WHERE id_historial = %s AND id_paciente = %s;', (id_historial, id_paciente))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-        if not row:
-            return render_template('historial_paciente.html', error='Entrada no encontrada', paciente=None, entries=[], username=username)
-        # reutilizar el formulario pero pre-llenar valores
-        return render_template('historial_paciente_form.html', paciente_id=id_paciente, username=username, edit=True, entry={'id_historial': row['id_historial'], 'titulo': row['titulo'], 'descripcion': row['descripcion']})
-    except Exception as e:
-        return render_template('historial_paciente.html', error=str(e), paciente=None, entries=[], username=username)
-
-
-@app.route('/paciente/<int:id_paciente>/historial/<int:id_historial>/eliminar', methods=['POST'])
-def eliminar_historial(id_paciente, id_historial):
-    if not is_logged_in():
-        return redirect(url_for('home'))
-    username = session.get('username')
-    tipo = session.get('tipo_usuario')
-
-    if not user_can_edit_historial(username, tipo, id_historial):
-        return render_template('historial_paciente.html', error='No tienes permisos para eliminar esta entrada', paciente=None, entries=[], username=username)
-
-    try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute('DELETE FROM historial_medico WHERE id_historial = %s AND id_paciente = %s;', (id_historial, id_paciente))
-        conn.commit()
-        cur.close()
-        conn.close()
-        return redirect(url_for('historial_paciente', id_paciente=id_paciente))
-    except Exception as e:
-        try:
-            if 'conn' in locals() and conn:
-                conn.rollback()
-        except Exception:
-            pass
-        return render_template('historial_paciente.html', error=str(e), paciente=None, entries=[], username=username)
-
-
-# ================================
-#   INICIAR APLICACIÓN
-# ================================
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+# -----------------------------
+# Ejecutar aplicación cuando se lance el script
+# -----------------------------
+if __name__ == '__main__':
+    # Permitir configurar puerto/host/debug vía variables de entorno
+    port = int(os.environ.get('PORT', 5000))
+    debug_env = os.environ.get('FLASK_DEBUG', '').lower()
+    debug = True if debug_env in ('1', 'true', 'yes') else False
+    # En desarrollo usualmente se quiere debug=True; si no se especifica, usar True
+    if debug_env == '':
+        debug = True
+    app.run(host='0.0.0.0', port=port, debug=debug)
