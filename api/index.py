@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import os
 from datetime import date, datetime
 import json
+import bcrypt
+from datetime import timedelta
 
 # ================================
 #   CONFIGURACIÓN Y CONEXIÓN
@@ -20,7 +22,28 @@ if not DB_URL:
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-change-this")
+app.permanent_session_lifetime = timedelta(days=7)  # Sesiones duran 7 días
 
+# ================================
+#   FUNCIONES DE HASH DE CONTRASEÑAS
+# ================================
+def hash_password(password):
+    """Genera hash de contraseña usando bcrypt"""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt)
+
+def check_password(password, hashed_password):
+    """Verifica contraseña contra hash"""
+    if not password or not hashed_password:
+        return False
+    try:
+        # Si el hash está en bytes, conviértelo a string
+        if isinstance(hashed_password, bytes):
+            hashed_password = hashed_password.decode('utf-8')
+        return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except:
+        # Si el hash no es válido, intenta comparar directamente (para migración)
+        return password == hashed_password
 
 # ================================
 #   FILTROS PERSONALIZADOS PARA TEMPLATES
@@ -64,6 +87,14 @@ def is_logged_in():
 
 
 # ================================
+#   CONFIGURACIÓN DE SESIÓN PERMANENTE
+# ================================
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+
+
+# ================================
 #   RUTAS DE AUTENTICACIÓN
 # ================================
 @app.route("/")
@@ -85,7 +116,7 @@ def login():
     try:
         conn = get_connection()
         cur = conn.cursor()
-        # Consulta MUY simplificada - solo verifica usuario/contraseña
+        # Obtener el hash de la contraseña
         cur.execute("""
             SELECT password_hash 
             FROM usuarios 
@@ -102,8 +133,8 @@ def login():
 
     stored_hash = row[0]
 
-    # Verificar contraseña
-    if password == stored_hash:
+    # Verificar contraseña usando bcrypt
+    if check_password(password, stored_hash):
         session["logged_in"] = True
         session["username"] = username
         return redirect(url_for("dashboard"))
@@ -149,11 +180,14 @@ def registro():
                 conn.close()
                 return render_template("registro.html", error="El nombre de usuario ya está en uso")
 
-            # Insertar usuario - MUY simple
+            # Hashear la contraseña antes de almacenarla
+            password_hash = hash_password(password)
+
+            # Insertar usuario con contraseña hasheada
             cur.execute("""
-                INSERT INTO usuarios (username, password_hash)
-                VALUES (%s, %s);
-            """, (username, password))
+                INSERT INTO usuarios (username, password_hash, fecha_creacion)
+                VALUES (%s, %s, NOW());
+            """, (username, password_hash.decode('utf-8')))
 
             conn.commit()
             cur.close()
@@ -166,7 +200,7 @@ def registro():
             return redirect(url_for("dashboard"))
 
         except Exception as e:
-            return f"<h3>Error en el registro: {e}</h3>"
+            return render_template("registro.html", error=f"Error en el registro: {str(e)}")
 
     return render_template("registro.html")
 
