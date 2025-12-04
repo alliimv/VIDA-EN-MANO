@@ -92,6 +92,21 @@ def is_logged_in():
     return session.get("logged_in") is True
 
 
+# Helper: obtener id_paciente asignado a un familiar
+def get_assigned_patient_id(username):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id_paciente_asignado FROM usuarios WHERE username = %s;", (username,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if row:
+            return row[0]
+    except Exception:
+        pass
+    return None
+
 # ================================
 #   CONFIGURACIÓN DE SESIÓN PERMANENTE
 # ================================
@@ -99,6 +114,36 @@ def is_logged_in():
 def make_session_permanent():
     session.permanent = True
 
+
+@app.before_request
+def restrict_familiar_access():
+    # Después de hacer la sesión permanente, limitar qué endpoints puede usar un 'familiar'.
+    # Permitir endpoints básicos y aquellos que sirven para ver su paciente/historial.
+    if not is_logged_in():
+        return None
+
+    tipo = session.get('tipo_usuario')
+    if tipo != 'familiar':
+        return None
+
+    # Endpoint actual
+    ep = request.endpoint or ''
+
+    # Permitir estáticos
+    if ep.startswith('static'):
+        return None
+
+    # Lista blanca de endpoints que un familiar puede usar
+    allowed = {
+        'home', 'login', 'logout', 'mi_perfil', 'ver_pacientes',
+        'historial_paciente', 'cambiar_contrasena'
+    }
+
+    # Si intenta acceder a otra endpoint, redirigirle a su perfil
+    if ep not in allowed:
+        return redirect(url_for('mi_perfil'))
+
+    return None
 
 # ================================
 #   RUTAS DE AUTENTICACIÓN
@@ -376,7 +421,10 @@ def ver_pacientes():
         return redirect(url_for("home"))
 
     username = session.get("username")
-    query = """
+    user_role = session.get("tipo_usuario", "invitado")
+
+    # Base query
+    base_query = """
         SELECT p.*, pu.id_pulsera, l.temperatura_c, l.ritmo_cardiaco, l.esta_puesta, l.momento_lectura
         FROM pacientes p
         LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
@@ -385,13 +433,28 @@ def ver_pacientes():
             WHERE l.id_pulsera = pu.id_pulsera
             ORDER BY l.momento_lectura DESC LIMIT 1
         ) l ON TRUE
-        ORDER BY p.id_paciente;
     """
+
+    params = []
+
+    # If user is a familiar, only show their assigned patient
+    if user_role == 'familiar':
+        assigned = get_assigned_patient_id(username)
+        if not assigned:
+            # no assigned patient - render empty list
+            return render_template("tabla_pacientes.html", username=username, pacientes=[])
+        base_query += " WHERE p.id_paciente = %s"
+        params.append(assigned)
+
+    base_query += " ORDER BY p.id_paciente;"
 
     try:
         conn = get_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute(query)
+        if params:
+            cur.execute(base_query, tuple(params))
+        else:
+            cur.execute(base_query)
         rows = cur.fetchall()
         cur.close()
         conn.close()
@@ -435,6 +498,9 @@ def buscar_pacientes():
     pacientes = []
     params = []
 
+    username = session.get('username')
+    user_role = session.get('tipo_usuario', 'invitado')
+
     if request.method == "POST":
         busqueda = request.form.get("busqueda", "").strip()
         estado_filtro = request.form.get("estado", "")
@@ -454,28 +520,45 @@ def buscar_pacientes():
             WHERE 1=1
         """
 
-        if busqueda:
-            if busqueda.isdigit():
-                query += " AND p.id_paciente = %s"
-                params.append(int(busqueda))
-            else:
-                query += " AND (p.nombre ILIKE %s OR p.apellido_paterno ILIKE %s OR p.apellido_materno ILIKE %s)"
-                termino_busqueda = f"%{busqueda}%"
-                params.extend([termino_busqueda, termino_busqueda, termino_busqueda])
+        # If familiar, restrict to assigned patient regardless of search
+        if user_role == 'familiar':
+            assigned = get_assigned_patient_id(username)
+            if not assigned:
+                return render_template(
+                    "buscar_pacientes.html",
+                    username=session.get("username"),
+                    pacientes=[],
+                    busqueda=busqueda,
+                    estado_filtro=estado_filtro,
+                    tiene_pulsera=tiene_pulsera,
+                    total_resultados=0
+                )
+            query += " AND p.id_paciente = %s"
+            params.append(int(assigned))
 
-        if estado_filtro:
-            if estado_filtro == "rojo":
-                query += " AND ((l.temperatura_c < 35 OR l.temperatura_c > 39.5) OR (l.ritmo_cardiaco < 40 OR l.ritmo_cardiaco > 130))"
-            elif estado_filtro == "verde":
-                query += " AND (l.temperatura_c BETWEEN 36 AND 37.5) AND (l.ritmo_cardiaco BETWEEN 60 AND 100) AND l.esta_puesta = true"
-            elif estado_filtro == "azul":
-                query += " AND NOT ((l.temperatura_c < 35 OR l.temperatura_c > 39.5) OR (l.ritmo_cardiaco < 40 OR l.ritmo_cardiaco > 130))"
-                query += " AND NOT ((l.temperatura_c BETWEEN 36 AND 37.5) AND (l.ritmo_cardiaco BETWEEN 60 AND 100) AND l.esta_puesta = true)"
+        else:
+            if busqueda:
+                if busqueda.isdigit():
+                    query += " AND p.id_paciente = %s"
+                    params.append(int(busqueda))
+                else:
+                    query += " AND (p.nombre ILIKE %s OR p.apellido_paterno ILIKE %s OR p.apellido_materno ILIKE %s)"
+                    termino_busqueda = f"%{busqueda}%"
+                    params.extend([termino_busqueda, termino_busqueda, termino_busqueda])
 
-        if tiene_pulsera == "con":
-            query += " AND pu.id_pulsera IS NOT NULL"
-        elif tiene_pulsera == "sin":
-            query += " AND pu.id_pulsera IS NULL"
+            if estado_filtro:
+                if estado_filtro == "rojo":
+                    query += " AND ((l.temperatura_c < 35 OR l.temperatura_c > 39.5) OR (l.ritmo_cardiaco < 40 OR l.ritmo_cardiaco > 130))"
+                elif estado_filtro == "verde":
+                    query += " AND (l.temperatura_c BETWEEN 36 AND 37.5) AND (l.ritmo_cardiaco BETWEEN 60 AND 100) AND l.esta_puesta = true"
+                elif estado_filtro == "azul":
+                    query += " AND NOT ((l.temperatura_c < 35 OR l.temperatura_c > 39.5) OR (l.ritmo_cardiaco < 40 OR l.ritmo_cardiaco > 130))"
+                    query += " AND NOT ((l.temperatura_c BETWEEN 36 AND 37.5) AND (l.ritmo_cardiaco BETWEEN 60 AND 100) AND l.esta_puesta = true)"
+
+            if tiene_pulsera == "con":
+                query += " AND pu.id_pulsera IS NOT NULL"
+            elif tiene_pulsera == "sin":
+                query += " AND pu.id_pulsera IS NULL"
 
         query += " ORDER BY p.id_paciente"
 
@@ -674,6 +757,9 @@ def semaforo():
     if not is_logged_in():
         return redirect(url_for("home"))
 
+    username = session.get('username')
+    user_role = session.get('tipo_usuario', 'invitado')
+
     query = """
         SELECT p.id_paciente, p.nombre, p.apellido_paterno, p.apellido_materno,
                pu.id_pulsera, l.ritmo_cardiaco, l.temperatura_c, l.esta_puesta, l.momento_lectura
@@ -684,13 +770,25 @@ def semaforo():
             WHERE l.id_pulsera = pu.id_pulsera
             ORDER BY l.momento_lectura DESC LIMIT 1
         ) l ON TRUE
-        ORDER BY p.id_paciente;
     """
+
+    params = []
+    if user_role == 'familiar':
+        assigned = get_assigned_patient_id(username)
+        if not assigned:
+            return render_template('semaforo.html', username=username, pacientes=[])
+        query += " WHERE p.id_paciente = %s"
+        params.append(assigned)
+
+    query += " ORDER BY p.id_paciente;"
 
     try:
         conn = get_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute(query)
+        if params:
+            cur.execute(query, tuple(params))
+        else:
+            cur.execute(query)
         rows = cur.fetchall()
         cur.close()
         conn.close()
@@ -953,7 +1051,7 @@ def historial_paciente_nuevo(id_paciente):
                 return render_template('historial_paciente_form.html', error='Paciente no encontrado', paciente_id=id_paciente, username=session.get('username'))
 
             cur.execute('INSERT INTO historial_medico (id_paciente, titulo, descripcion, creado_por) VALUES (%s, %s, %s, %s);',
-                        (id_paciente, titulo, descripcion if descripcion else None, creado_por))
+                        (id_paciente, titulo, descripcion, creado_por))
             conn.commit()
             cur.close()
             conn.close()
@@ -1030,7 +1128,7 @@ def editar_historial(id_paciente, id_historial):
         try:
             conn = get_connection()
             cur = conn.cursor()
-            cur.execute('UPDATE historial_medico SET titulo = %s, descripcion = %s WHERE id_historial = %s AND id_paciente = %s;', (titulo, descripcion if descripcion else None, id_historial, id_paciente))
+            cur.execute('UPDATE historial_medico SET titulo = %s, descripcion = %s WHERE id_historial = %s AND id_paciente = %s;', (titulo, descripcion, id_historial, id_paciente))
             conn.commit()
             cur.close()
             conn.close()
