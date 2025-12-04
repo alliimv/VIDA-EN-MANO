@@ -134,9 +134,12 @@ def restrict_familiar_access():
         return None
 
     # Lista blanca de endpoints que un familiar puede usar
+    # Añadimos todas las rutas relacionadas con ver/crear/editar/eliminar historial,
+    # además de vistas de pacientes y búsqueda para que puedan abrir el historial.
     allowed = {
-        'home', 'login', 'logout', 'mi_perfil', 'ver_pacientes',
-        'historial_paciente', 'cambiar_contrasena'
+        'home', 'login', 'logout', 'mi_perfil', 'ver_pacientes', 'buscar_pacientes',
+        'historial_paciente', 'historial_paciente_nuevo', 'editar_historial', 'eliminar_historial',
+        'cambiar_contrasena', 'tabla_pacientes'
     }
 
     # Si intenta acceder a otra endpoint, redirigirle a su perfil
@@ -1275,4 +1278,3 @@ def eliminar_historial(id_paciente, id_historial):
 # ================================
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
-
