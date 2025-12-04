@@ -2,355 +2,420 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Principal | Monitoreo Adultos Mayores</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Monitoreo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #f8f9fa;
+            color: #333;
             min-height: 100vh;
-            padding: 20px;
         }
 
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* HEADER */
-        .header {
-            background: white;
-            border-radius: 20px;
-            padding: 25px 40px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        .navbar {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .header-title h1 {
-            color: #333;
-            font-size: 2.2rem;
-            margin-bottom: 5px;
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 600;
         }
 
-        .header-title p {
-            color: #666;
-            font-size: 1rem;
+        .navbar-brand i {
+            font-size: 1.8rem;
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
         }
 
-        .user-name {
-            background: #f3f4f6;
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-weight: 600;
-            color: #4b5563;
+        .user-role {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            text-transform: capitalize;
         }
 
         .logout-btn {
-            background: #ef4444;
+            background-color: rgba(255, 255, 255, 0.15);
             color: white;
-            padding: 10px 25px;
-            border-radius: 10px;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
             text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
+            transition: background-color 0.3s;
         }
 
         .logout-btn:hover {
-            background: #dc2626;
-            transform: translateY(-2px);
+            background-color: rgba(255, 255, 255, 0.25);
         }
 
-        /* BOTONES PRINCIPALES */
-        .main-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 25px;
-            margin-bottom: 30px;
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
         }
 
-        .main-btn {
+        .welcome-section {
             background: white;
-            border-radius: 20px;
-            padding: 40px 30px;
-            text-decoration: none;
-            color: #333;
-            transition: all 0.3s;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            border: 3px solid transparent;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
-        .main-btn:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            border-color: #667eea;
+        .welcome-section h1 {
+            color: #1a73e8;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
         }
 
-        .btn-icon {
-            font-size: 3.5rem;
-            margin-bottom: 20px;
-        }
-
-        .btn-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: #1f2937;
-        }
-
-        .btn-description {
-            color: #6b7280;
-            font-size: 1rem;
+        .welcome-section p {
+            color: #666;
+            font-size: 1.1rem;
             line-height: 1.5;
-        }
-
-        /* COLORES DE BOTONES */
-        .btn-pacientes { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); }
-        .btn-estatus { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); }
-        .btn-prueba { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
-        .btn-agregar { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); }
-
-        .btn-pacientes .btn-icon { color: #065f46; }
-        .btn-estatus .btn-icon { color: #1e40af; }
-        .btn-prueba .btn-icon { color: #5b21b6; }
-        .btn-agregar .btn-icon { color: #92400e; }
-
-        /* ESTADÍSTICAS */
-        .stats-container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-top: 30px;
-        }
-
-        .stats-title {
-            font-size: 1.5rem;
-            color: #1f2937;
-            margin-bottom: 20px;
-            text-align: center;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .stat-card {
-            background: #f9fafb;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            border-left: 5px solid #667eea;
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
-        .stat-number {
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-icon.pacientes {
+            background: linear-gradient(135deg, #4285f4, #1a73e8);
+        }
+
+        .stat-icon.criticos {
+            background: linear-gradient(135deg, #ea4335, #d93025);
+        }
+
+        .stat-icon.estables {
+            background: linear-gradient(135deg, #34a853, #2e8b57);
+        }
+
+        .stat-value {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #1f2937;
+            color: #333;
+            margin: 0.5rem 0;
         }
 
         .stat-label {
-            color: #6b7280;
+            color: #666;
             font-size: 1rem;
-            margin-top: 5px;
+            font-weight: 500;
         }
 
-        /* RESPONSIVE */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .action-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-color: #1a73e8;
+        }
+
+        .action-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .action-icon.pacientes {
+            background: linear-gradient(135deg, #4285f4, #1a73e8);
+        }
+
+        .action-icon.buscar {
+            background: linear-gradient(135deg, #34a853, #2e8b57);
+        }
+
+        .action-icon.semaforo {
+            background: linear-gradient(135deg, #fbbc05, #f9ab00);
+        }
+
+        .action-icon.perfil {
+            background: linear-gradient(135deg, #8e44ad, #9b59b6);
+        }
+
+        .action-icon.agregar {
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+        }
+
+        .action-icon.admin {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+        }
+
+        .action-card h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .action-card p {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 1.5rem;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+
         @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                gap: 20px;
-                text-align: center;
+            .container {
+                padding: 0 1rem;
             }
 
-            .main-buttons {
+            .navbar {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stats-grid {
                 grid-template-columns: 1fr;
             }
 
-            .btn-title {
-                font-size: 1.5rem;
+            .actions-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- HEADER -->
-        <div class="header">
-            <div class="header-title">
-                <h1>🏥 Centro de Monitoreo</h1>
-                <p>Sistema de seguimiento para adultos mayores</p>
+    <!-- Barra de navegación -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-heartbeat"></i>
+            <span>Sistema de Monitoreo de Residencia</span>
+        </div>
+        <div class="user-info">
+            <div>
+                <strong>{{ username }}</strong>
+                <span class="user-role">Administrador</span>
             </div>
-            <div class="user-info">
-                <div class="user-name">👤 {{ username }}</div>
-                <a href="{{ url_for('logout') }}" class="logout-btn">Cerrar Sesión</a>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+            </a>
+        </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <div class="container">
+        <!-- Sección de bienvenida -->
+        <div class="welcome-section">
+            <h1>Bienvenido, {{ username }}</h1>
+            <p>Panel de control del sistema de monitoreo para la residencia. Desde aquí puedes gestionar todos los residentes y sus datos de salud.</p>
+        </div>
+
+        <!-- Tarjetas de estadísticas -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-label">Total de Residentes</div>
+                        <div class="stat-value">{{ total_pacientes }}</div>
+                    </div>
+                    <div class="stat-icon pacientes">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <p>Residentes registrados en el sistema</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-label">Residentes Críticos</div>
+                        <div class="stat-value">{{ criticos }}</div>
+                    </div>
+                    <div class="stat-icon criticos">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                </div>
+                <p>Requieren atención inmediata</p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div>
+                        <div class="stat-label">Residentes Estables</div>
+                        <div class="stat-value">{{ estables }}</div>
+                    </div>
+                    <div class="stat-icon estables">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+                <p>En condiciones normales</p>
             </div>
         </div>
 
-      <!-- Después del header, agrega esto: -->
-<div style="background: linear-gradient(135deg,
-    {% if user_role == 'admin' %}#ef4444
-    {% elif user_role == 'medico' %}#3b82f6
-    {% elif user_role == 'enfermero' %}#10b981
-    {% else %}#8b5cf6{% endif %} 0%,
-    {% if user_role == 'admin' %}#dc2626
-    {% elif user_role == 'medico' %}#2563eb
-    {% elif user_role == 'enfermero' %}#059669
-    {% else %}#7c3aed{% endif %} 100%);
-    color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h2 style="margin: 0;">¡Bienvenido, {{ username }}!</h2>
-            <p style="margin: 5px 0 0 0; opacity: 0.9;">
-                Rol:
-                <strong>
-                    {% if user_role == 'admin' %}👑 Administrador
-                    {% elif user_role == 'medico' %}👨‍⚕️ Médico
-                    {% elif user_role == 'enfermero' %}👩‍⚕️ Enfermero/a
-                    {% else %}👪 Familiar{% endif %}
-                </strong>
-            </p>
+        <!-- En la sección de estadísticas del dashboard -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div>
+                <div class="stat-label">
+                    {% if user_role == 'enfermero' %}
+                        Total de Pacientes
+                    {% else %}
+                        Paciente Asignado
+                    {% endif %}
+                </div>
+                <div class="stat-value">{{ total_pacientes }}</div>
+            </div>
+            <div class="stat-icon pacientes">
+                <i class="fas fa-users"></i>
+            </div>
         </div>
-        <a href="{{ url_for('mi_perfil') }}"
-           style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px;
-                  text-decoration: none; border-radius: 5px; border: 1px solid rgba(255,255,255,0.3);">
-            👤 Mi Perfil
-        </a>
+        <p>
+            {% if user_role == 'enfermero' %}
+                Pacientes bajo supervisión
+            {% else %}
+                Familiar autorizado
+            {% endif %}
+        </p>
     </div>
-</div>
-
-        <!-- BOTONES PRINCIPALES -->
-        <div class="main-buttons">
-            <!-- LISTA DE PACIENTES -->
-            <a href="/ver-pacientes" class="main-btn btn-pacientes">
-                <div class="btn-icon">👥</div>
-                <div class="btn-title">Ver Pacientes</div>
-                <div class="btn-description">
-                    Ver tabla completa de pacientes<br>
-                    con datos médicos
+        <!-- Acciones principales -->
+        <div class="actions-grid">
+            <a href="/ver-pacientes" class="action-card">
+                <div class="action-icon pacientes">
+                    <i class="fas fa-list-ol"></i>
                 </div>
+                <h3>Ver Residentes</h3>
+                <p>Consulta la lista completa de residentes con sus datos actualizados.</p>
             </a>
 
-            <!-- En la sección de botones principales, agrega: -->
-<a href="{{ url_for('buscar_pacientes') }}" class="main-btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);">
-    <div class="btn-icon" style="color: #5b21b6;">🔍</div>
-    <div class="btn-title">Buscar Pacientes</div>
-    <div class="btn-description">
-        Buscar por nombre, ID o estado<br>
-        Filtros avanzados
+            <a href="/buscar-pacientes" class="action-card">
+                <div class="action-icon buscar">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>Buscar Residentes</h3>
+                <p>Búsqueda avanzada con filtros por nombre, estado y otros criterios.</p>
+            </a>
+
+            <a href="/semaforo" class="action-card">
+                <div class="action-icon semaforo">
+                    <i class="fas fa-traffic-light"></i>
+                </div>
+                <h3>Semáforo de Estado</h3>
+                <p>Vista visual del estado de todos los residentes (rojo/verde/azul).</p>
+            </a>
+
+            <a href="/mi-perfil" class="action-card">
+                <div class="action-icon perfil">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h3>Mi Perfil</h3>
+                <p>Gestiona tu información personal y consulta las asignaciones.</p>
+            </a>
+
+            <a href="/agregar-paciente" class="action-card">
+                <div class="action-icon agregar">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h3>Agregar Residente</h3>
+                <p>Registra nuevos residentes en el sistema.</p>
+            </a>
+
+            <a href="/admin" class="action-card">
+                <div class="action-icon admin">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h3>Panel Administrativo</h3>
+                <p>Gestión de usuarios y configuración del sistema.</p>
+            </a>
+        </div>
     </div>
-</a>
-            <!-- Agrega este botón en tu dashboard.html, por ejemplo en la sección de navegación: -->
-<div style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap;">
-    <a href="{{ url_for('ver_pacientes') }}"
-       style="background: #3b82f6; color: white; padding: 12px 20px;
-              text-decoration: none; border-radius: 8px; font-weight: bold;">
-        📋 Ver Pacientes
-    </a>
-    <a href="{{ url_for('semaforo') }}"
-       style="background: #10b981; color: white; padding: 12px 20px;
-              text-decoration: none; border-radius: 8px; font-weight: bold;">
-        🚦 Semáforo
-    </a>
-    <a href="{{ url_for('buscar_pacientes') }}"
-       style="background: #8b5cf6; color: white; padding: 12px 20px;
-              text-decoration: none; border-radius: 8px; font-weight: bold;">
-        🔍 Buscar Pacientes
-    </a>
-    <!-- NUEVO BOTÓN PARA VER BD COMPLETA -->
-    <a href="{{ url_for('ver_bd_completa') }}"
-       style="background: #ef4444; color: white; padding: 12px 20px;
-              text-decoration: none; border-radius: 8px; font-weight: bold;">
-        🗃️ Ver Base de Datos
-    </a>
-    <a href="{{ url_for('mi_perfil') }}"
-       style="background: #f59e0b; color: white; padding: 12px 20px;
-              text-decoration: none; border-radius: 8px; font-weight: bold;">
-        👤 Mi Perfil
-    </a>
-</div>
-            <!-- Agrega este botón donde tengas los otros botones de navegación -->
-<a href="{{ url_for('ver_bd_completa') }}"
-   style="background: #ef4444; color: white; padding: 12px 20px;
-          text-decoration: none; border-radius: 8px; font-weight: bold;
-          display: inline-flex; align-items: center; gap: 8px;
-          margin: 5px;">
-    🗃️ Ver Base de Datos Completa
-</a>
 
-            <!-- SEMÁFORO -->
-            <a href="{{ url_for('semaforo') }}" class="main-btn btn-estatus">
-                <div class="btn-icon">📈</div>
-                <div class="btn-title">Ver Semáforo</div>
-                <div class="btn-description">
-                    Estado general de todos<br>
-                    los pacientes
-                </div>
-            </a>
-
-            <!-- PRUEBA DE BASE DE DATOS -->
-            <a href="/debug-conn" class="main-btn btn-prueba">
-                <div class="btn-icon">🔧</div>
-                <div class="btn-title">Prueba BD</div>
-                <div class="btn-description">
-                    Probar conexión con<br>
-                    la base de datos
-                </div>
-            </a>
-
-            <!-- AGREGAR PACIENTE -->
-            <a href="{{ url_for('agregar_paciente') }}" class="main-btn btn-agregar">
-                <div class="btn-icon">➕</div>
-                <div class="btn-title">Agregar Paciente</div>
-                <div class="btn-description">
-                    Registrar nuevo paciente<br>
-                    en el sistema
-                </div>
-            </a>
-        </div>
-
-        <!-- ESTADÍSTICAS -->
-        <div class="stats-container">
-            <div class="stats-title">📊 Resumen del Sistema</div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number">4</div>
-                    <div class="stat-label">Módulos Activos</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">24/7</div>
-                    <div class="stat-label">Monitoreo</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">🏥</div>
-                    <div class="stat-label">Sistema Médico</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">✅</div>
-                    <div class="stat-label">Funcionando</div>
-                </div>
-            </div>
-        </div>
+    <!-- Pie de página -->
+    <div class="footer">
+        <p>Sistema de Monitoreo de Residencia &copy; 2024</p>
+        <p>Última actualización: {{ now().strftime('%d/%m/%Y %H:%M') }}</p>
     </div>
 </body>
 </html>
-

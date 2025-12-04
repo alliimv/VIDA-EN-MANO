@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo i {
+            font-size: 3rem;
+            color: #1a73e8;
+            margin-bottom: 10px;
+        }
+
+        .logo h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error i {
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        }
+
+        .conditional-field {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #1a73e8;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .conditional-field.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .password-strength {
+            margin-top: 5px;
+            font-size: 0.85rem;
+        }
+
+        .password-strength.weak {
+            color: #e53935;
+        }
+
+        .password-strength.medium {
+            color: #ff9800;
+        }
+
+        .password-strength.strong {
+            color: #4caf50;
+        }
+
+        button {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(26, 115, 232, 0.3);
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .link p {
+            color: #666;
+        }
+
+        .link a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .link a:hover {
+            color: #0d47a1;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <i class="fas fa-user-plus"></i>
+            <h1>Crear Cuenta</h1>
+            <p>Regístrate para acceder al sistema de monitoreo</p>
+        </div>
+
+        {% if error %}
+        <div class="error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="POST" id="registroForm">
+            <div class="form-group">
+                <label for="username">
+                    <i class="fas fa-user"></i> Nombre de Usuario
+                </label>
+                <input type="text"
+                       id="username"
+                       name="username"
+                       required
+                       placeholder="Ej: juan.perez"
+                       value="{{ request.form.username if request.form }}">
+            </div>
+
+            <div class="form-group">
+                <label for="rol">
+                    <i class="fas fa-user-tag"></i> Tipo de Usuario
+                </label>
+                <select id="rol" name="rol" required>
+                    <option value="enfermero">Enfermero/a</option>
+                    <option value="familiar">Familiar Autorizado</option>
+                </select>
+                <small>Enfermeros tienen acceso completo, familiares solo ven un paciente</small>
+            </div>
+
+            <div id="familiarFields" class="conditional-field">
+                <div class="form-group">
+                    <label for="id_paciente">
+                        <i class="fas fa-user-injured"></i> Paciente Asignado
+                    </label>
+                    <select id="id_paciente" name="id_paciente">
+                        <option value="">Selecciona un paciente</option>
+                        {% if pacientes %}
+                            {% for paciente in pacientes %}
+                            <option value="{{ paciente[0] }}">
+                                {{ paciente[1] }} {{ paciente[2] }} (ID: {{ paciente[0] }})
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="parentesco">
+                        <i class="fas fa-users"></i> Parentesco
+                    </label>
+                    <input type="text"
+                           id="parentesco"
+                           name="parentesco"
+                           placeholder="Ej: Hijo/a, Esposo/a, Hermano/a">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i> Contraseña
+                </label>
+                <input type="password"
+                       id="password"
+                       name="password"
+                       required
+                       placeholder="Mínimo 6 caracteres"
+                       oninput="checkPasswordStrength()">
+                <div id="passwordStrength" class="password-strength"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">
+                    <i class="fas fa-lock"></i> Confirmar Contraseña
+                </label>
+                <input type="password"
+                       id="confirm_password"
+                       name="confirm_password"
+                       required
+                       placeholder="Repite tu contraseña">
+            </div>
+
+            <button type="submit">
+                <i class="fas fa-user-plus"></i> Crear Cuenta
+            </button>
+        </form>
+
+        <div class="link">
+            <p>¿Ya tienes una cuenta? <a href="{{ url_for('home') }}">Inicia sesión aquí</a></p>
+        </div>
+    </div>
+
+    <script>
+        const rolSelect = document.getElementById('rol');
+        const familiarFields = document.getElementById('familiarFields');
+        const pacienteSelect = document.getElementById('id_paciente');
+        const parentescoInput = document.getElementById('parentesco');
+
+        // Mostrar/ocultar campos de familiar
+        rolSelect.addEventListener('change', function() {
+            if (this.value === 'familiar') {
+                familiarFields.classList.add('show');
+                pacienteSelect.required = true;
+                parentescoInput.required = true;
+            } else {
+                familiarFields.classList.remove('show');
+                pacienteSelect.required = false;
+                parentescoInput.required = false;
+            }
+        });
+
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthElement = document.getElementById('passwordStrength');
+
+            if (password.length === 0) {
+                strengthElement.textContent = '';
+                strengthElement.className = 'password-strength';
+                return;
+            }
+
+            let strength = 0;
+            let message = '';
+            let className = '';
+
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+            if (strength <= 2) {
+                message = 'Contraseña débil';
+                className = 'password-strength weak';
+            } else if (strength <= 4) {
+                message = 'Contraseña media';
+                className = 'password-strength medium';
+            } else {
+                message = 'Contraseña fuerte';
+                className = 'password-strength strong';
+            }
+
+            strengthElement.textContent = message;
+            strengthElement.className = className;
+        }
+
+        // Validación del formulario
+        document.getElementById('registroForm').addEventListener('submit', function(event) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const username = document.getElementById('username').value;
+            const rol = document.getElementById('rol').value;
+
+            // Validar nombre de usuario
+            if (username.length < 3) {
+                event.preventDefault();
+                alert('El nombre de usuario debe tener al menos 3 caracteres');
+                return;
+            }
+
+            // Validar contraseña
+            if (password.length < 6) {
+                event.preventDefault();
+                alert('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+
+            // Validar que las contraseñas coincidan
+            if (password !== confirmPassword) {
+                event.preventDefault();
+                alert('Las contraseñas no coinciden');
+                return;
+            }
+
+            // Validaciones para familiares
+            if (rol === 'familiar') {
+                const idPaciente = document.getElementById('id_paciente').value;
+                const parentesco = document.getElementById('parentesco').value;
+
+                if (!idPaciente) {
+                    event.preventDefault();
+                    alert('Debes seleccionar un paciente para familiar');
+                    return;
+                }
+
+                if (!parentesco.trim()) {
+                    event.preventDefault();
+                    alert('Debes especificar el parentesco');
+                    return;
+                }
+            }
+
+            // Mostrar mensaje de éxito
+            alert('¡Cuenta creada exitosamente! Serás redirigido al dashboard.');
+        });
+
+        // Enfocar el primer campo automáticamente
+        document.getElementById('username').focus();
+    </script>
+</body>
+</html>

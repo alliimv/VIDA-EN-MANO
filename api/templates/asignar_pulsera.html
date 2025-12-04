@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asignar Pulsera</title>
+    <!-- Mismos estilos que agregar_paciente.html -->
+</head>
+<body>
+    <!-- Similar a agregar_paciente.html pero más simple -->
+    <form method="POST">
+        <h1>Asignar Pulsera al Paciente ID: {{ id_paciente }}</h1>
+        <div class="form-group">
+            <label for="id_pulsera">ID de la Pulsera</label>
+            <input type="text" id="id_pulsera" name="id_pulsera" required
+                   placeholder="Ej: 1001">
+        </div>
+        <button type="submit" class="btn-primary">Asignar Pulsera</button>
+    </form>
+</body>
+</html>

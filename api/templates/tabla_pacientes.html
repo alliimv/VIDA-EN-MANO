@@ -2,96 +2,176 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Lista de Pacientes | Monitoreo Adultos Mayores</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Pacientes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f9fafb;
+            background-color: #f8f9fa;
+            color: #333;
             min-height: 100vh;
         }
 
-        /* HEADER */
-        .header {
-            background: white;
-            border-bottom: 2px solid #e5e7eb;
-            padding: 20px 40px;
+        .navbar {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .header-left h1 {
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .navbar-brand i {
             font-size: 1.8rem;
-            color: #111827;
-            margin-bottom: 5px;
         }
 
-        .header-left p {
-            color: #6b7280;
-            font-size: 1rem;
-        }
-
-        .header-buttons {
+        .user-info {
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
-        .btn {
-            padding: 10px 20px;
-            border-radius: 10px;
+        .logout-btn {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
             text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.3s;
+            transition: background-color 0.3s;
+        }
+
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: #1a73e8;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 1rem;
         }
 
         .btn-primary {
-            background: #10b981;
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
             color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .btn-primary:hover {
-            background: #059669;
             transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(26, 115, 232, 0.3);
         }
 
-        .btn-back {
-            background: #6b7280;
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
+            font-size: 1.2rem;
         }
 
-        .btn-back:hover {
-            background: #4b5563;
-            transform: translateY(-2px);
+        .stat-icon.pacientes {
+            background: linear-gradient(135deg, #4285f4, #1a73e8);
         }
 
-        .user-info {
-            color: #4b5563;
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-label {
+            color: #666;
             font-size: 0.9rem;
         }
 
-        /* CONTENIDO PRINCIPAL */
-        .main-content {
-            padding: 30px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* TABLA */
         .table-container {
             background: white;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
         }
 
         table {
@@ -99,86 +179,147 @@
             border-collapse: collapse;
         }
 
+        thead {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+        }
+
         th {
-            background: #f8fafc;
-            padding: 18px 20px;
+            padding: 1rem;
             text-align: left;
             font-weight: 600;
-            color: #374151;
-            border-bottom: 2px solid #e5e7eb;
-            font-size: 0.95rem;
+            border-bottom: 2px solid #0d47a1;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
         }
 
         td {
-            padding: 18px 20px;
-            border-bottom: 1px solid #f3f4f6;
-            color: #4b5563;
-            font-size: 0.95rem;
+            padding: 1rem;
         }
 
-        tr:hover {
-            background: #f9fafb;
-        }
-
-        /* BADGES */
-        .badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+        .patient-id {
             font-weight: 600;
+            color: #1a73e8;
         }
 
-        .badge-on {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-off {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .badge-none {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
-
-        /* ESTADOS */
-        .alert {
-            color: #dc2626;
-            font-weight: 600;
-        }
-
-        .ok {
-            color: #059669;
+        .patient-name {
             font-weight: 500;
         }
 
-        /* SIN DATOS */
-        .no-data {
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .badge-warning {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-danger {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .badge-info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-small-primary {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .btn-small-primary:hover {
+            background: #0d47a1;
+        }
+
+        .btn-small-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-small-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .empty-state {
             text-align: center;
-            padding: 60px;
-            color: #6b7280;
+            padding: 3rem;
+            color: #666;
         }
 
-        .no-data-icon {
+        .empty-state i {
             font-size: 3rem;
-            margin-bottom: 20px;
-            opacity: 0.5;
+            color: #ddd;
+            margin-bottom: 1rem;
         }
 
-        /* RESPONSIVE */
-        @media (max-width: 1024px) {
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 1.5rem;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .navbar {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+
             .header {
                 flex-direction: column;
-                gap: 20px;
-                text-align: center;
+                gap: 1rem;
+                align-items: flex-start;
             }
 
             .header-buttons {
-                flex-wrap: wrap;
-                justify-content: center;
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .stats-bar {
+                flex-direction: column;
             }
 
             table {
@@ -189,110 +330,162 @@
     </style>
 </head>
 <body>
-    <!-- HEADER -->
-    <div class="header">
-        <div class="header-left">
-            <h1>👥 Lista de Pacientes</h1>
-            <p>Todos los pacientes registrados en el sistema</p>
+    <!-- Barra de navegación -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-users"></i>
+            <span>Lista de Pacientes</span>
         </div>
-        <div class="header-buttons">
-            <a href="{{ url_for('agregar_paciente') }}" class="btn btn-primary">
-                ➕ Agregar Nuevo Paciente
-            </a>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-back">
-                ← Volver al Dashboard
-            </a>
-            <div class="user-info">
-                👤 {{ username }}
+        <div class="user-info">
+            <div>
+                <strong>{{ username }}</strong>
             </div>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+            </a>
+        </div>
+    </nav>
+
+    <!-- En la columna de acciones -->
+<td>
+    <div style="display: flex; gap: 5px;">
+        {% if user_role == 'enfermero' and paciente.id_pulsera == "Sin asignar" %}
+            <a href="/asignar-pulsera/{{ paciente.id_paciente }}" class="btn-small btn-small-primary">
+                <i class="fas fa-link"></i> Asignar Pulsera
+            </a>
+        {% elif user_role == 'enfermero' %}
+            <span class="badge badge-info">Pulsera: {{ paciente.id_pulsera }}</span>
+        {% endif %}
+
+        {% if user_role == 'familiar' %}
+            <span class="badge badge-success">Tu familiar</span>
+        {% endif %}
+    </div>
+</td>
+
+    <!-- Contenido principal -->
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-list-ol"></i> Todos los Pacientes</h1>
+            <div class="header-buttons">
+                <a href="/dashboard" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                </a>
+                <a href="/agregar-paciente" class="btn-primary">
+                    <i class="fas fa-user-plus"></i> Agregar Paciente
+                </a>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-icon pacientes">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ pacientes|length }}</div>
+                    <div class="stat-label">Total de Pacientes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de pacientes -->
+        <div class="table-container">
+            {% if pacientes %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre Completo</th>
+                            <th>Edad</th>
+                            <th>Pulsera</th>
+                            <th>Temperatura</th>
+                            <th>Ritmo Cardíaco</th>
+                            <th>Estado</th>
+                            <th>Última Lectura</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paciente in pacientes %}
+                        <tr>
+                            <td class="patient-id">{{ paciente.id_paciente|format_id }}</td>
+                            <td class="patient-name">{{ paciente.nombre }}</td>
+                            <td>{{ paciente.edad if paciente.edad else 'N/A' }}</td>
+                            <td>
+                                {% if paciente.id_pulsera == "Sin asignar" %}
+                                    <span class="badge badge-warning">Sin asignar</span>
+                                {% else %}
+                                    <span class="badge badge-success">{{ paciente.id_pulsera }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if paciente.temperatura_c %}
+                                    {{ "%.1f"|format(paciente.temperatura_c) }}°C
+                                {% else %}
+                                    <span class="badge badge-warning">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if paciente.ritmo_cardiaco %}
+                                    {{ paciente.ritmo_cardiaco }} BPM
+                                {% else %}
+                                    <span class="badge badge-warning">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if paciente.esta_puesta == True %}
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-check-circle"></i> Conectada
+                                    </span>
+                                {% elif paciente.esta_puesta == False %}
+                                    <span class="badge badge-danger">
+                                        <i class="fas fa-times-circle"></i> Desconectada
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-warning">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if paciente.momento_lectura %}
+                                    {{ paciente.momento_lectura.strftime('%d/%m/%Y %H:%M') }}
+                                {% else %}
+                                    <span class="badge badge-warning">Nunca</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 5px;">
+                                    {% if paciente.id_pulsera == "Sin asignar" %}
+                                        <a href="/asignar-pulsera/{{ paciente.id_paciente }}" class="btn-small btn-small-primary">
+                                            <i class="fas fa-link"></i> Asignar Pulsera
+                                        </a>
+                                    {% else %}
+                                        <span class="badge badge-info">Pulsera: {{ paciente.id_pulsera }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-users-slash"></i>
+                    <h3>No hay pacientes registrados</h3>
+                    <p>Comienza agregando tu primer paciente al sistema.</p>
+                    <a href="/agregar-paciente" class="btn-primary" style="margin-top: 1rem;">
+                        <i class="fas fa-user-plus"></i> Agregar Primer Paciente
+                    </a>
+                </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- En el header, después del título: -->
-<div style="margin-top: 10px;">
-    <form action="{{ url_for('buscar_pacientes') }}" method="GET" style="display: flex; gap: 10px;">
-        <input type="text"
-               name="q"
-               placeholder="Buscar paciente..."
-               style="padding: 8px 15px; border: 2px solid #d1d5db; border-radius: 8px; flex-grow: 1;">
-        <button type="submit"
-                style="background: #3b82f6; color: white; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer;">
-            🔍
-        </button>
-    </form>
-</div>
-
-    <!-- CONTENIDO PRINCIPAL -->
-    <div class="main-content">
-        {% if pacientes|length == 0 %}
-        <div class="no-data">
-            <div class="no-data-icon">📋</div>
-            <h3>No hay pacientes registrados</h3>
-            <p style="margin-top: 10px;">Comienza agregando tu primer paciente</p>
-            <a href="{{ url_for('agregar_paciente') }}" class="btn btn-primary" style="margin-top: 20px; display: inline-block;">
-                ➕ Agregar Primer Paciente
-            </a>
-        </div>
-        {% else %}
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre del Paciente</th>
-                        <th>Edad</th>
-                        <th>Pulsera</th>
-                        <th>Temperatura</th>
-                        <th>Ritmo Cardíaco</th>
-                        <th>Estado Pulsera</th>
-                        <th>Última Lectura</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in pacientes %}
-                    {% set temp = p.temperatura_c %}
-                    {% set ritmo = p.ritmo_cardiaco %}
-                    {% set temp_alert = temp is not none and (temp < 36 or temp > 38) %}
-                    {% set ritmo_alert = ritmo is not none and (ritmo < 50 or ritmo > 110) %}
-                    <tr>
-                        <td><strong>#{{ p.id_paciente }}</strong></td>
-                        <td>{{ p.nombre }}</td>
-                        <td>{{ p.edad if p.edad is not none else "-" }} años</td>
-                        <td>{{ p.id_pulsera }}</td>
-                        <td class="{{ 'alert' if temp_alert else 'ok' if temp is not none else '' }}">
-                            {{ temp if temp is not none else "-" }}°C
-                        </td>
-                        <td class="{{ 'alert' if ritmo_alert else 'ok' if ritmo is not none else '' }}">
-                            {{ ritmo if ritmo is not none else "-" }} lpm
-                        </td>
-                        <td>
-                            {% if p.esta_puesta %}
-                                <span class="badge badge-on">✅ Puesta</span>
-                            {% elif p.esta_puesta is not none %}
-                                <span class="badge badge-off">❌ No puesta</span>
-                            {% else %}
-                                <span class="badge badge-none">─</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if p.momento_lectura %}
-                                {{ p.momento_lectura.strftime('%d/%m/%Y %H:%M') }}
-                            {% else %}
-                                <span style="color: #9ca3af;">Sin lecturas</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- RESUMEN -->
-        <div style="margin-top: 25px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            <strong>📊 Resumen:</strong> Total {{ pacientes|length }} paciente(s) registrado(s)
-        </div>
-        {% endif %}
+    <!-- Pie de página -->
+    <div class="footer">
+        <p>Sistema de Monitoreo de Pacientes &copy; 2024</p>
+        <p>Total de pacientes: {{ pacientes|length }}</p>
     </div>
 </body>
 </html>
-

@@ -21,9 +21,19 @@ if not DB_URL:
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-change-this")
 
+
 # ================================
 #   FILTROS PERSONALIZADOS PARA TEMPLATES
 # ================================
+
+@app.template_filter('format_id')
+def format_id_filter(id_num):
+    """Formatea ID como 001, 002, etc. (solo para pacientes)"""
+    try:
+        return f"{int(id_num):03d}"
+    except (ValueError, TypeError):
+        return str(id_num)
+
 
 @app.template_filter('tojson')
 def tojson_filter(value):
@@ -35,10 +45,15 @@ def tojson_filter(value):
     except:
         return str(value)
 
+
 @app.context_processor
 def inject_now():
     return {'now': datetime.now}
 
+
+# ================================
+#   CONEXIÓN A LA BASE DE DATOS
+# ================================
 
 def get_connection():
     return psycopg2.connect(DB_URL)
@@ -46,26 +61,6 @@ def get_connection():
 
 def is_logged_in():
     return session.get("logged_in") is True
-
-
-# ================================
-#   FUNCIONES AUXILIARES PARA ROLES
-# ================================
-def get_user_role(username):
-    """Obtiene el rol de un usuario"""
-    try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT rol FROM usuarios WHERE username = %s;",
-            (username,)
-        )
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-        return row[0] if row else 'enfermero'
-    except Exception:
-        return 'enfermero'
 
 
 # ================================
@@ -90,8 +85,9 @@ def login():
     try:
         conn = get_connection()
         cur = conn.cursor()
+        # Consulta MUY simplificada - solo verifica usuario/contraseña
         cur.execute("""
-            SELECT id_usuario, password_hash, rol, activo 
+            SELECT password_hash 
             FROM usuarios 
             WHERE username = %s;
         """, (username,))
@@ -104,22 +100,12 @@ def login():
     if row is None:
         return redirect(url_for("home", error="Usuario o contraseña incorrectos"))
 
-    id_usuario, stored_hash, rol, activo = row
-
-    if not activo:
-        return redirect(url_for("home", error="Usuario desactivado. Contacta al administrador."))
+    stored_hash = row[0]
 
     # Verificar contraseña
-    password_correct = False
-
     if password == stored_hash:
-        password_correct = True
-
-    if password_correct:
         session["logged_in"] = True
         session["username"] = username
-        session["user_role"] = rol
-        session["user_id"] = id_usuario
         return redirect(url_for("dashboard"))
     else:
         return redirect(url_for("home", error="Usuario o contraseña incorrectos"))
@@ -141,7 +127,6 @@ def registro():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
-        rol_solicitado = request.form.get("rol", "enfermero")
 
         # Validaciones
         if not username or not password:
@@ -164,14 +149,12 @@ def registro():
                 conn.close()
                 return render_template("registro.html", error="El nombre de usuario ya está en uso")
 
-            # Insertar nuevo usuario
+            # Insertar usuario - MUY simple
             cur.execute("""
-                INSERT INTO usuarios (username, password_hash, rol, activo)
-                VALUES (%s, %s, %s, TRUE)
-                RETURNING id_usuario;
-            """, (username, password, rol_solicitado))
+                INSERT INTO usuarios (username, password_hash)
+                VALUES (%s, %s);
+            """, (username, password))
 
-            id_usuario = cur.fetchone()[0]
             conn.commit()
             cur.close()
             conn.close()
@@ -179,8 +162,6 @@ def registro():
             # Auto-login después del registro
             session["logged_in"] = True
             session["username"] = username
-            session["user_role"] = rol_solicitado
-            session["user_id"] = id_usuario
 
             return redirect(url_for("dashboard"))
 
@@ -199,30 +180,14 @@ def dashboard():
         return redirect(url_for("home"))
 
     username = session.get("username")
-    user_role = session.get("user_role", "enfermero")
 
-    # Contar pacientes según rol
+    # Contar pacientes
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        if user_role in ['admin', 'medico']:
-            cur.execute("SELECT COUNT(*) FROM pacientes;")
-        elif user_role == 'enfermero':
-            cur.execute("""
-                SELECT COUNT(DISTINCT ae.id_paciente) 
-                FROM asignaciones_enfermero ae
-                JOIN usuarios u ON u.id_usuario = ae.id_usuario
-                WHERE u.username = %s;
-            """, (username,))
-        elif user_role == 'familiar':
-            cur.execute("""
-                SELECT COUNT(DISTINCT fa.id_paciente) 
-                FROM familiares_autorizados fa
-                JOIN usuarios u ON u.id_usuario = fa.id_usuario
-                WHERE u.username = %s;
-            """, (username,))
-
+        # Todos los pacientes
+        cur.execute("SELECT COUNT(*) FROM pacientes;")
         total_pacientes = cur.fetchone()[0] or 0
 
         # Obtener estadísticas recientes
@@ -251,7 +216,6 @@ def dashboard():
 
     return render_template("dashboard.html",
                            username=username,
-                           user_role=user_role,
                            total_pacientes=total_pacientes,
                            criticos=criticos,
                            estables=estables)
@@ -266,7 +230,6 @@ def mi_perfil():
         return redirect(url_for("home"))
 
     username = session.get("username")
-    user_role = session.get("user_role", "enfermero")
 
     try:
         conn = get_connection()
@@ -274,33 +237,19 @@ def mi_perfil():
 
         # Obtener información del usuario
         cur.execute("""
-            SELECT username, rol, fecha_creacion 
+            SELECT username, fecha_creacion 
             FROM usuarios 
             WHERE username = %s;
         """, (username,))
         usuario = cur.fetchone()
 
-        # Obtener pacientes asignados según rol
-        if user_role == 'enfermero':
-            cur.execute("""
-                SELECT p.nombre, p.apellido_paterno, p.apellido_materno, p.id_paciente
-                FROM asignaciones_enfermero ae
-                JOIN pacientes p ON p.id_paciente = ae.id_paciente
-                JOIN usuarios u ON u.id_usuario = ae.id_usuario
-                WHERE u.username = %s;
-            """, (username,))
-            asignaciones = cur.fetchall()
-        elif user_role == 'familiar':
-            cur.execute("""
-                SELECT p.nombre, p.apellido_paterno, p.apellido_materno, p.id_paciente, fa.parentesco
-                FROM familiares_autorizados fa
-                JOIN pacientes p ON p.id_paciente = fa.id_paciente
-                JOIN usuarios u ON u.id_usuario = fa.id_usuario
-                WHERE u.username = %s;
-            """, (username,))
-            asignaciones = cur.fetchall()
-        else:
-            asignaciones = []
+        # Obtener todos los pacientes
+        cur.execute("""
+            SELECT p.nombre, p.apellido_paterno, p.apellido_materno, p.id_paciente
+            FROM pacientes p
+            ORDER BY p.nombre;
+        """)
+        asignaciones = cur.fetchall()
 
         cur.close()
         conn.close()
@@ -310,13 +259,12 @@ def mi_perfil():
 
     return render_template("mi_perfil.html",
                            username=username,
-                           user_role=user_role,
                            usuario=usuario,
                            asignaciones=asignaciones)
 
 
 # ================================
-#   VER PACIENTES (TABLA)
+#   VER PACIENTES (TABLA) - TODOS LOS PACIENTES
 # ================================
 @app.route("/ver-pacientes")
 def ver_pacientes():
@@ -324,35 +272,32 @@ def ver_pacientes():
         return redirect(url_for("home"))
 
     username = session.get("username")
-    user_role = session.get("user_role", "enfermero")
 
-    # Construir query según rol
-    if user_role in ['admin', 'medico']:
-        query = """
-            SELECT p.*, pu.id_pulsera 
-            FROM pacientes p
-            LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
-            ORDER BY p.id_paciente;
-        """
-        params = []
-    else:
-        query = """
-            SELECT p.*, pu.id_pulsera 
-            FROM pacientes p
-            LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
-            WHERE p.id_paciente IN (
-                SELECT ae.id_paciente FROM asignaciones_enfermero ae
-                JOIN usuarios u ON u.id_usuario = ae.id_usuario
-                WHERE u.username = %s
-            )
-            ORDER BY p.id_paciente;
-        """
-        params = [username]
+    # Consulta para TODOS los pacientes
+    query = """
+        SELECT 
+            p.*, 
+            pu.id_pulsera,
+            l.temperatura_c,
+            l.ritmo_cardiaco,
+            l.esta_puesta,
+            l.momento_lectura
+        FROM pacientes p
+        LEFT JOIN pulseras pu ON pu.id_paciente = p.id_paciente
+        LEFT JOIN LATERAL (
+            SELECT *
+            FROM lecturas l
+            WHERE l.id_pulsera = pu.id_pulsera
+            ORDER BY l.momento_lectura DESC
+            LIMIT 1
+        ) l ON TRUE
+        ORDER BY p.id_paciente;
+    """
 
     try:
         conn = get_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute(query, tuple(params))
+        cur.execute(query)
         rows = cur.fetchall()
         cur.close()
         conn.close()
@@ -370,16 +315,20 @@ def ver_pacientes():
     pacientes = []
     for r in rows:
         nombre_completo = f"{r['nombre']} {r['apellido_paterno']} {r['apellido_materno']}"
+
         pacientes.append({
             "id_paciente": r["id_paciente"],
             "nombre": nombre_completo,
             "edad": calcular_edad(r["fecha_nacimiento"]),
             "id_pulsera": r["id_pulsera"] if r["id_pulsera"] is not None else "Sin asignar",
+            "temperatura_c": r["temperatura_c"],
+            "ritmo_cardiaco": r["ritmo_cardiaco"],
+            "esta_puesta": r["esta_puesta"],
+            "momento_lectura": r["momento_lectura"],
         })
 
     return render_template("tabla_pacientes.html",
                            username=username,
-                           user_role=user_role,
                            pacientes=pacientes)
 
 
@@ -519,20 +468,16 @@ def buscar_pacientes():
         total_resultados=len(pacientes)
     )
 
+
 # ================================
-#   VER BASE DE DATOS COMPLETA (SIN FILTROS DE ROL)
+#   VER BASE DE DATOS COMPLETA
 # ================================
 @app.route("/ver-bd-completa")
 def ver_bd_completa():
-    """
-    Vista especial para ver toda la base de datos sin filtros por rol.
-    Requiere autenticación pero no restricciones de rol.
-    """
     if not is_logged_in():
         return redirect(url_for("home"))
 
     username = session.get("username")
-    user_role = session.get("user_role", "enfermero")
 
     # Obtener todas las tablas y sus datos
     try:
@@ -597,13 +542,13 @@ def ver_bd_completa():
 
     return render_template("ver_bd_completa.html",
                            username=username,
-                           user_role=user_role,
                            tablas=tablas,
                            datos_tablas=datos_tablas,
                            estadisticas=estadisticas)
 
+
 # ================================
-#   AGREGAR PACIENTE
+#   AGREGAR PACIENTE CON PULSERA
 # ================================
 @app.route("/agregar-paciente", methods=["GET", "POST"])
 def agregar_paciente():
@@ -615,6 +560,8 @@ def agregar_paciente():
         apellido_paterno = request.form.get("apellido_paterno", "").strip()
         apellido_materno = request.form.get("apellido_materno", "").strip()
         fecha_nacimiento = request.form.get("fecha_nacimiento", "").strip()
+        asignar_pulsera = request.form.get("asignar_pulsera", "no") == "si"
+        id_pulsera = request.form.get("id_pulsera", "").strip()
 
         if not nombre or not apellido_paterno:
             return render_template("agregar_paciente.html",
@@ -625,6 +572,7 @@ def agregar_paciente():
             conn = get_connection()
             cur = conn.cursor()
 
+            # 1. Insertar paciente
             cur.execute("""
                 INSERT INTO pacientes (nombre, apellido_paterno, apellido_materno, fecha_nacimiento)
                 VALUES (%s, %s, %s, %s)
@@ -633,12 +581,36 @@ def agregar_paciente():
                   fecha_nacimiento if fecha_nacimiento else None))
 
             id_paciente = cur.fetchone()[0]
+
+            # 2. Si se quiere asignar pulsera y se proporcionó un ID
+            if asignar_pulsera and id_pulsera:
+                # Verificar si la pulsera ya está asignada
+                cur.execute("SELECT 1 FROM pulseras WHERE id_pulsera = %s;", (int(id_pulsera),))
+                if cur.fetchone():
+                    conn.rollback()
+                    cur.close()
+                    conn.close()
+                    return render_template("agregar_paciente.html",
+                                           error=f"La pulsera {id_pulsera} ya está asignada a otro paciente",
+                                           username=session.get("username"))
+
+                # Asignar la pulsera al paciente
+                cur.execute("""
+                    INSERT INTO pulseras (id_pulsera, id_paciente, fecha_asignacion)
+                    VALUES (%s, %s, NOW());
+                """, (int(id_pulsera), id_paciente))
+
             conn.commit()
             cur.close()
             conn.close()
 
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("ver_pacientes"))
 
+        except ValueError:
+            error_msg = "El ID de pulsera debe ser un número válido"
+            return render_template("agregar_paciente.html",
+                                   error=error_msg,
+                                   username=session.get("username"))
         except Exception as e:
             error_msg = f"Error al guardar: {str(e)}"
             return render_template("agregar_paciente.html",
@@ -647,6 +619,85 @@ def agregar_paciente():
 
     return render_template("agregar_paciente.html",
                            username=session.get("username"))
+
+
+# ================================
+#   ASIGNAR PULSERA A PACIENTE EXISTENTE
+# ================================
+@app.route("/asignar-pulsera/<int:id_paciente>", methods=["GET", "POST"])
+def asignar_pulsera(id_paciente):
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    if request.method == "POST":
+        id_pulsera = request.form.get("id_pulsera", "").strip()
+
+        if not id_pulsera:
+            return render_template("asignar_pulsera.html",
+                                   error="El ID de pulsera es requerido",
+                                   username=session.get("username"),
+                                   id_paciente=id_paciente)
+
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+
+            # Verificar si el paciente existe
+            cur.execute("SELECT 1 FROM pacientes WHERE id_paciente = %s;", (id_paciente,))
+            if not cur.fetchone():
+                cur.close()
+                conn.close()
+                return render_template("asignar_pulsera.html",
+                                       error="Paciente no encontrado",
+                                       username=session.get("username"),
+                                       id_paciente=id_paciente)
+
+            # Verificar si la pulsera ya está asignada
+            cur.execute("SELECT 1 FROM pulseras WHERE id_pulsera = %s;", (int(id_pulsera),))
+            if cur.fetchone():
+                cur.close()
+                conn.close()
+                return render_template("asignar_pulsera.html",
+                                       error=f"La pulsera {id_pulsera} ya está asignada",
+                                       username=session.get("username"),
+                                       id_paciente=id_paciente)
+
+            # Verificar si el paciente ya tiene pulsera
+            cur.execute("SELECT 1 FROM pulseras WHERE id_paciente = %s;", (id_paciente,))
+            if cur.fetchone():
+                # Actualizar pulsera existente
+                cur.execute("""
+                    UPDATE pulseras 
+                    SET id_pulsera = %s, fecha_asignacion = NOW()
+                    WHERE id_paciente = %s;
+                """, (int(id_pulsera), id_paciente))
+            else:
+                # Insertar nueva pulsera
+                cur.execute("""
+                    INSERT INTO pulseras (id_pulsera, id_paciente, fecha_asignacion)
+                    VALUES (%s, %s, NOW());
+                """, (int(id_pulsera), id_paciente))
+
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            return redirect(url_for("ver_pacientes"))
+
+        except ValueError:
+            return render_template("asignar_pulsera.html",
+                                   error="El ID de pulsera debe ser un número",
+                                   username=session.get("username"),
+                                   id_paciente=id_paciente)
+        except Exception as e:
+            return render_template("asignar_pulsera.html",
+                                   error=f"Error: {str(e)}",
+                                   username=session.get("username"),
+                                   id_paciente=id_paciente)
+
+    return render_template("asignar_pulsera.html",
+                           username=session.get("username"),
+                           id_paciente=id_paciente)
 
 
 # ================================
@@ -733,7 +784,7 @@ def semaforo():
 
 
 # ================================
-#   API PARA PULSERAS (mantener)
+#   API PARA PULSERAS
 # ================================
 @app.route("/pulsera/<int:id_pulsera>/lectura", methods=["POST"])
 def insertar_lectura_pulsera(id_pulsera):
@@ -776,55 +827,6 @@ def insertar_lectura_pulsera(id_pulsera):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-# ================================
-#   RUTAS ADMINISTRATIVAS
-# ================================
-@app.route("/admin")
-def admin_panel():
-    if not is_logged_in():
-        return redirect(url_for("home"))
-
-    user_role = session.get("user_role", "enfermero")
-    if user_role != 'admin':
-        return "Acceso denegado. Se requiere rol de administrador.", 403
-
-    try:
-        conn = get_connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-
-        # Obtener todos los usuarios
-        cur.execute("""
-            SELECT username, rol, fecha_creacion, activo 
-            FROM usuarios 
-            ORDER BY fecha_creacion DESC;
-        """)
-        usuarios = cur.fetchall()
-
-        # Obtener estadísticas
-        cur.execute("""
-            SELECT 
-                COUNT(*) as total_usuarios,
-                COUNT(CASE WHEN rol = 'admin' THEN 1 END) as admins,
-                COUNT(CASE WHEN rol = 'medico' THEN 1 END) as medicos,
-                COUNT(CASE WHEN rol = 'enfermero' THEN 1 END) as enfermeros,
-                COUNT(CASE WHEN rol = 'familiar' THEN 1 END) as familiares
-            FROM usuarios;
-        """)
-        stats = cur.fetchone()
-
-        cur.close()
-        conn.close()
-
-    except Exception as e:
-        return f"<h3>Error en panel admin: {e}</h3>"
-
-    return render_template("admin_panel.html",
-                           username=session.get("username"),
-                           user_role=user_role,
-                           usuarios=usuarios,
-                           stats=stats)
 
 
 # ================================
