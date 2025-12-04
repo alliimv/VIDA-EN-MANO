@@ -807,6 +807,284 @@ def sensor():
         return f"Failed to connect: {e}"
 
 
+# ================================
+#   CAMBIAR CONTRASEÑA
+# ================================
+@app.route("/cambiar-contrasena", methods=["GET", "POST"])
+def cambiar_contrasena():
+    # Sólo para usuarios autenticados
+    if not is_logged_in():
+        return redirect(url_for("home"))
+
+    username = session.get("username")
+
+    if request.method == "POST":
+        current = request.form.get("current_password", "")
+        new = request.form.get("new_password", "")
+        confirm = request.form.get("confirm_password", "")
+
+        # Validaciones básicas
+        if not current or not new or not confirm:
+            return render_template("cambiar_contrasena.html", error="Todos los campos son obligatorios", username=username)
+
+        if new != confirm:
+            return render_template("cambiar_contrasena.html", error="Las nuevas contraseñas no coinciden", username=username)
+
+        if len(new) < 6:
+            return render_template("cambiar_contrasena.html", error="La contraseña debe tener al menos 6 caracteres", username=username)
+
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT password_hash FROM usuarios WHERE username = %s;", (username,))
+            row = cur.fetchone()
+            if not row:
+                cur.close()
+                conn.close()
+                return render_template("cambiar_contrasena.html", error="Usuario no encontrado", username=username)
+
+            stored_hash = row[0]
+            # Verificar contraseña actual
+            if not check_password(current, stored_hash):
+                cur.close()
+                conn.close()
+                return render_template("cambiar_contrasena.html", error="La contraseña actual es incorrecta", username=username)
+
+            # Hashear y actualizar
+            new_hash = hash_password(new)
+            cur.execute("UPDATE usuarios SET password_hash = %s WHERE username = %s;", (new_hash, username))
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            return render_template("cambiar_contrasena.html", success="Contraseña actualizada con éxito", username=username)
+
+        except Exception as e:
+            try:
+                if 'conn' in locals() and conn:
+                    conn.rollback()
+            except Exception:
+                pass
+            return render_template("cambiar_contrasena.html", error=f"Error al actualizar la contraseña: {e}", username=username)
+
+    # GET
+    return render_template("cambiar_contrasena.html", username=username)
+
+
+# ================================
+#   HISTORIAL MÉDICO POR PACIENTE
+# ================================
+@app.route('/paciente/<int:id_paciente>/historial')
+def historial_paciente(id_paciente):
+    if not is_logged_in():
+        return redirect(url_for('home'))
+
+    username = session.get('username')
+    tipo = session.get('tipo_usuario')
+
+    # permiso de visualización
+    if not user_can_view_historial(username, tipo, id_paciente):
+        return render_template('historial_paciente.html', error='No tienes permisos para ver el historial de este paciente', paciente=None, entries=[], username=username)
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        # Obtener paciente
+        cur.execute("SELECT id_paciente, nombre, apellido_paterno, apellido_materno FROM pacientes WHERE id_paciente = %s;", (id_paciente,))
+        paciente = cur.fetchone()
+        if not paciente:
+            cur.close()
+            conn.close()
+            return render_template('historial_paciente.html', error='Paciente no encontrado', paciente=None, entries=[] , username=username)
+
+        # Obtener entradas del historial
+        cur.execute("SELECT id_historial, titulo, descripcion, creado_por, fecha FROM historial_medico WHERE id_paciente = %s ORDER BY fecha DESC;", (id_paciente,))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        entries = []
+        for r in rows:
+            hid = r['id_historial']
+            can_edit = user_can_edit_historial(username, tipo, hid)
+            entries.append({
+                'id_historial': hid,
+                'titulo': r['titulo'],
+                'descripcion': r['descripcion'],
+                'creado_por': r['creado_por'],
+                'fecha': r['fecha'],
+                'can_edit': can_edit,
+                'can_delete': can_edit
+            })
+
+        return render_template('historial_paciente.html', paciente=paciente, entries=entries, username=session.get('username'))
+
+    except Exception as e:
+        return render_template('historial_paciente.html', error=str(e), paciente=None, entries=[], username=session.get('username'))
+
+
+@app.route('/paciente/<int:id_paciente>/historial/nuevo', methods=['GET', 'POST'])
+def historial_paciente_nuevo(id_paciente):
+    if not is_logged_in():
+        return redirect(url_for('home'))
+
+    username = session.get('username')
+    tipo = session.get('tipo_usuario')
+
+    # sólo ciertos roles pueden crear entradas
+    if tipo not in ('enfermero', 'medico', 'admin'):
+        return render_template('historial_paciente.html', error='No tienes permisos para crear entradas en el historial', paciente=None, entries=[], username=username)
+
+    if request.method == 'POST':
+        titulo = request.form.get('titulo', '').strip()
+        descripcion = request.form.get('descripcion', '').strip()
+        creado_por = session.get('username')
+
+        if not titulo:
+            return render_template('historial_paciente_form.html', error='El título es requerido', paciente_id=id_paciente, username=session.get('username'))
+
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute('SELECT 1 FROM pacientes WHERE id_paciente = %s;', (id_paciente,))
+            if not cur.fetchone():
+                cur.close()
+                conn.close()
+                return render_template('historial_paciente_form.html', error='Paciente no encontrado', paciente_id=id_paciente, username=session.get('username'))
+
+            cur.execute('INSERT INTO historial_medico (id_paciente, titulo, descripcion, creado_por) VALUES (%s, %s, %s, %s);',
+                        (id_paciente, titulo, descripcion if descripcion else None, creado_por))
+            conn.commit()
+            cur.close()
+            conn.close()
+            return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+
+        except Exception as e:
+            try:
+                if 'conn' in locals() and conn:
+                    conn.rollback()
+            except Exception:
+                pass
+            return render_template('historial_paciente_form.html', error=str(e), paciente_id=id_paciente, username=session.get('username'))
+
+    # GET
+    return render_template('historial_paciente_form.html', paciente_id=id_paciente, username=session.get('username'))
+
+
+# ================================
+#   PERMISOS PARA HISTORIAL
+# ================================
+
+def user_can_view_historial(username, tipo_usuario, id_paciente):
+    # enfermero y medico pueden ver todo. Familiar sólo puede ver si está asignado al paciente
+    if tipo_usuario in ('enfermero', 'medico', 'admin'):
+        return True
+    if tipo_usuario == 'familiar':
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute('SELECT 1 FROM usuarios WHERE username = %s AND id_paciente_asignado = %s;', (username, id_paciente))
+            ok = cur.fetchone() is not None
+            cur.close()
+            conn.close()
+            return ok
+        except Exception:
+            return False
+    return False
+
+
+def user_can_edit_historial(username, tipo_usuario, id_historial):
+    # enfermero/medico/admin pueden editar todo. Creador puede editar su propia entrada.
+    if tipo_usuario in ('enfermero', 'medico', 'admin'):
+        return True
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute('SELECT creado_por FROM historial_medico WHERE id_historial = %s;', (id_historial,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return False
+        creado_por = row[0]
+        return creado_por == username
+    except Exception:
+        return False
+
+
+@app.route('/paciente/<int:id_paciente>/historial/<int:id_historial>/editar', methods=['GET', 'POST'])
+def editar_historial(id_paciente, id_historial):
+    if not is_logged_in():
+        return redirect(url_for('home'))
+    username = session.get('username')
+    tipo = session.get('tipo_usuario')
+
+    if not user_can_edit_historial(username, tipo, id_historial):
+        return render_template('historial_paciente.html', error='No tienes permisos para editar esta entrada', paciente=None, entries=[], username=username)
+
+    if request.method == 'POST':
+        titulo = request.form.get('titulo', '').strip()
+        descripcion = request.form.get('descripcion', '').strip()
+        if not titulo:
+            return render_template('historial_paciente_form.html', error='El título es requerido', paciente_id=id_paciente, username=username)
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            cur.execute('UPDATE historial_medico SET titulo = %s, descripcion = %s WHERE id_historial = %s AND id_paciente = %s;', (titulo, descripcion if descripcion else None, id_historial, id_paciente))
+            conn.commit()
+            cur.close()
+            conn.close()
+            return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+        except Exception as e:
+            try:
+                if 'conn' in locals() and conn:
+                    conn.rollback()
+            except Exception:
+                pass
+            return render_template('historial_paciente_form.html', error=str(e), paciente_id=id_paciente, username=username)
+
+    # GET: cargar la entrada existente
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute('SELECT id_historial, titulo, descripcion FROM historial_medico WHERE id_historial = %s AND id_paciente = %s;', (id_historial, id_paciente))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return render_template('historial_paciente.html', error='Entrada no encontrada', paciente=None, entries=[], username=username)
+        # reutilizar el formulario pero pre-llenar valores
+        return render_template('historial_paciente_form.html', paciente_id=id_paciente, username=username, edit=True, entry={'id_historial': row['id_historial'], 'titulo': row['titulo'], 'descripcion': row['descripcion']})
+    except Exception as e:
+        return render_template('historial_paciente.html', error=str(e), paciente=None, entries=[], username=username)
+
+
+@app.route('/paciente/<int:id_paciente>/historial/<int:id_historial>/eliminar', methods=['POST'])
+def eliminar_historial(id_paciente, id_historial):
+    if not is_logged_in():
+        return redirect(url_for('home'))
+    username = session.get('username')
+    tipo = session.get('tipo_usuario')
+
+    if not user_can_edit_historial(username, tipo, id_historial):
+        return render_template('historial_paciente.html', error='No tienes permisos para eliminar esta entrada', paciente=None, entries=[], username=username)
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute('DELETE FROM historial_medico WHERE id_historial = %s AND id_paciente = %s;', (id_historial, id_paciente))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return redirect(url_for('historial_paciente', id_paciente=id_paciente))
+    except Exception as e:
+        try:
+            if 'conn' in locals() and conn:
+                conn.rollback()
+        except Exception:
+            pass
+        return render_template('historial_paciente.html', error=str(e), paciente=None, entries=[], username=username)
+
 
 # ================================
 #   INICIAR APLICACIÓN

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cambiar contraseña</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .btn { display:inline-block; padding:10px 14px; background:#3b82f6; color:#fff; text-decoration:none; border-radius:6px; }
+        .input { width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:6px; }
+        .error { background:#fee2e2; padding:10px; border-radius:6px; color:#b91c1c; }
+        .success { background:#ecfdf5; padding:10px; border-radius:6px; color:#065f46; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h2>Cambiar contraseña</h2>
+
+            {% if error %}
+            <div class="error">⚠️ {{ error }}</div>
+            {% endif %}
+
+            {% if success %}
+            <div class="success">✅ {{ success }}</div>
+            {% endif %}
+
+            <form method="post">
+                <label>Contraseña actual</label>
+                <input class="input" type="password" name="current_password" required>
+
+                <label>Nueva contraseña</label>
+                <input class="input" type="password" name="new_password" required>
+
+                <label>Confirmar nueva contraseña</label>
+                <input class="input" type="password" name="confirm_password" required>
+
+                <div style="margin-top:12px;">
+                    <button class="btn" type="submit">Actualizar contraseña</button>
+                    <a class="btn" href="{{ url_for('mi_perfil') }}" style="background:#6b7280; margin-left:8px;">Volver</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

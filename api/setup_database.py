@@ -29,6 +29,20 @@ def init_database():
     """, (hashed_pw,))
 
     conn.commit()
+
+    # Crear tabla para historiales médicos si no existe
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS historial_medico (
+            id_historial SERIAL PRIMARY KEY,
+            id_paciente INTEGER NOT NULL REFERENCES pacientes(id_paciente) ON DELETE CASCADE,
+            titulo TEXT NOT NULL,
+            descripcion TEXT,
+            creado_por TEXT,
+            fecha TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    ''')
+
+    conn.commit()
     cur.close()
     conn.close()
     print("✅ Base de datos inicializada correctamente")

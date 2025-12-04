@@ -525,6 +525,11 @@
                                            class="action-btn btn-view">
                                             👁️ Ver
                                         </a>
+
+                                        <!-- Botón Historial -->
+                                        <a href="{{ url_for('historial_paciente', id_paciente=p.id_paciente) }}" class="action-btn btn-historial" style="margin-left:8px;">
+                                            📚 Historial
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
@@ -591,3 +596,4 @@
     </script>
 </body>
 </html>
+

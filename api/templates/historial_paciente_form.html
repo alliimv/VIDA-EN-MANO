@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>{% if edit %}Editar{% else %}Nueva entrada{% endif %} - Historial médico</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:20px}
+    .card{background:#fff;padding:14px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,0.06);}
+    .input{width:100%;padding:8px;margin:6px 0;border:1px solid #ddd;border-radius:6px}
+    .btn{display:inline-block;padding:8px 12px;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none}
+    .error{background:#fee2e2;padding:8px;border-radius:6px;color:#7f1d1d}
+  </style>
+</head>
+<body>
+  <a href="{{ url_for('historial_paciente', id_paciente=paciente_id) }}" class="btn">← Volver</a>
+
+  <div class="card" style="max-width:700px;margin-top:12px">
+    <h3>{% if edit %}Editar{% else %}Nueva entrada{% endif %} en historial</h3>
+
+    {% if error %}
+      <div class="error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{% if edit %}{{ url_for('editar_historial', id_paciente=paciente_id, id_historial=entry.id_historial) }}{% else %}{{ url_for('historial_paciente_nuevo', id_paciente=paciente_id) }}{% endif %}">
+      <label>Título</label>
+      <input class="input" type="text" name="titulo" required value="{% if edit and entry %}{{ entry.titulo }}{% endif %}">
+
+      <label>Descripción</label>
+      <textarea class="input" name="descripcion" rows="6">{% if edit and entry %}{{ entry.descripcion }}{% endif %}</textarea>
+
+      <div style="margin-top:8px">
+        <button class="btn" type="submit">{% if edit %}Actualizar{% else %}Guardar{% endif %}</button>
+        <a href="{{ url_for('historial_paciente', id_paciente=paciente_id) }}" class="btn" style="background:#6b7280;margin-left:8px">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+</body>
+</html>

@@ -463,6 +463,11 @@
                                     {% else %}
                                         <span class="badge badge-info">Pulsera: {{ paciente.id_pulsera }}</span>
                                     {% endif %}
+
+                                    <!-- Botón Historial -->
+                                    <a href="{{ url_for('historial_paciente', id_paciente=paciente.id_paciente) }}" class="btn-small btn-small-secondary">
+                                        <i class="fas fa-book-medical"></i> Historial
+                                    </a>
                                 </div>
                             </td>
                         </tr>

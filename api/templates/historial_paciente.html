@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Historial médico - {{ paciente.nombre if paciente else 'Paciente' }}</title>
+  <style>
+    body{font-family: Arial, sans-serif; padding:20px;}
+    .card{background:#fff;padding:16px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,0.08);margin-bottom:12px}
+    .btn{display:inline-block;padding:8px 12px;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none}
+    .entry{border-left:3px solid #e5e7eb;padding:8px;margin-bottom:8px}
+    .meta{color:#6b7280;font-size:0.9em}
+  </style>
+</head>
+<body>
+  <div>
+    <a href="{{ url_for('ver_pacientes') }}" class="btn">← Volver</a>
+  </div>
+
+  <h2>Historial médico</h2>
+
+  {% if error %}
+    <div class="card" style="background:#fee2e2;color:#7f1d1d">⚠️ {{ error }}</div>
+  {% endif %}
+
+  {% if paciente %}
+    <div class="card">
+      <h3>Paciente: {{ paciente.nombre }} {{ paciente.apellido_paterno }} {{ paciente.apellido_materno }}</h3>
+      <div style="margin-top:8px">
+        {% if session.tipo_usuario in ['enfermero','medico','admin'] %}
+        <a href="{{ url_for('historial_paciente_nuevo', id_paciente=paciente.id_paciente) }}" class="btn">➕ Nueva entrada</a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if entries and entries|length > 0 %}
+      {% for e in entries %}
+        <div class="card entry">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong>{{ e.titulo }}</strong>
+            <span class="meta">{{ e.fecha }}</span>
+          </div>
+          <div class="meta">Creado por: {{ e.creado_por or 'Sistema' }}</div>
+          <p style="margin-top:8px">{{ e.descripcion }}</p>
+
+          {% if e.can_edit %}
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <a href="{{ url_for('editar_historial', id_paciente=paciente.id_paciente, id_historial=e.id_historial) }}" class="btn" style="background:#f59e0b;">✏️ Editar</a>
+
+            <form method="post" action="{{ url_for('eliminar_historial', id_paciente=paciente.id_paciente, id_historial=e.id_historial) }}" style="display:inline-block;margin:0;">
+              <button type="submit" class="btn" style="background:#ef4444;">🗑️ Eliminar</button>
+            </form>
+          </div>
+          {% endif %}
+
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="card">No hay entradas en el historial para este paciente.</div>
+    {% endif %}
+
+  {% else %}
+    <div class="card">Paciente no encontrado.</div>
+  {% endif %}
+
+</body>
+</html>
