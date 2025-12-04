@@ -6,416 +6,167 @@
     <title>Dashboard - Sistema de Monitoreo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        :root{
+            --bg:#f7f9fb;
+            --card:#ffffff;
+            --muted:#6b7280;
+            --accent:#1a73e8;
+            --accent-2:#0d47a1;
+            --success:#10b981;
+            --danger:#ef4444;
+            --glass: rgba(255,255,255,0.6);
         }
-
-        body {
-            background-color: #f8f9fa;
-            color: #333;
-            min-height: 100vh;
+        *{box-sizing:border-box}
+        body{margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,var(--bg),#eef2ff 60%); color:#111827; min-height:100vh}
+        .topbar{
+            display:flex;align-items:center;justify-content:space-between;
+            gap:16px;padding:18px 28px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;
+            box-shadow:0 6px 18px rgba(15,23,42,0.12);
         }
-
-        .navbar {
-            background: linear-gradient(135deg, #1a73e8, #0d47a1);
-            color: white;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .brand{display:flex;align-items:center;gap:14px;font-weight:700;font-size:1.15rem}
+        .brand i{background:rgba(255,255,255,0.16);padding:10px;border-radius:10px;font-size:1.25rem}
+        .user-actions{display:flex;align-items:center;gap:12px}
+        .avatar{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+        .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.12);color:white;padding:8px 12px;border-radius:10px;text-decoration:none}
+        .container{max-width:1200px;margin:26px auto;padding:0 20px}
+        .welcome{display:flex;align-items:flex-start;gap:20px;margin-bottom:22px}
+        .welcome-card{flex:1;background:linear-gradient(180deg, rgba(255,255,255,0.8), var(--glass));padding:22px;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,0.06);display:flex;gap:18px;align-items:center}
+        .welcome-card .info{flex:1}
+        .welcome-card h1{margin:0;font-size:1.4rem;color:var(--accent-2)}
+        .welcome-card p{margin:6px 0 0;color:var(--muted)}
+        .welcome-card .quick{display:flex;gap:10px;margin-top:14px}
+        .quick a{background:var(--accent);color:white;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:600;box-shadow:0 6px 18px rgba(26,115,232,0.14)}
+        .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:18px}
+        .stat{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,0.04);display:flex;align-items:center;gap:14px}
+        .stat .icon{width:56px;height:56;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.4rem}
+        .stat h3{margin:0;font-size:1.6rem}
+        .stat p{margin:4px 0 0;color:var(--muted);font-size:0.95rem}
+        .icon.pacientes{background:linear-gradient(135deg,#4f46e5,#1e40af)}
+        .icon.criticos{background:linear-gradient(135deg,#fb7185,#ef4444)}
+        .icon.estables{background:linear-gradient(135deg,#34d399,#10b981)}
+        .actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px}
+        .action{background:linear-gradient(180deg, #fff, #fbfdff);border-radius:12px;padding:16px;color:inherit;text-decoration:none;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 24px rgba(15,23,42,0.04)}
+        .action .aicon{width:44px;height:44;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white}
+        .aicon.pacientes{background:linear-gradient(135deg,#4f46e5,#1e40af)}
+        .aicon.buscar{background:linear-gradient(135deg,#06b6d4,#0ea5b7)}
+        .aicon.semaforo{background:linear-gradient(135deg,#f59e0b,#f97316)}
+        .aicon.perfil{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+        .action h4{margin:0;font-size:1.05rem}
+        .action p{margin:0;color:var(--muted);font-size:0.95rem}
+        .footer{margin-top:34px;text-align:center;color:var(--muted);font-size:0.9rem;padding:28px 0}
+        @media (max-width:900px){
+            .stats-row{grid-template-columns:repeat(2,1fr)}
         }
-
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .navbar-brand i {
-            font-size: 1.8rem;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .user-role {
-            background-color: rgba(255, 255, 255, 0.2);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            text-transform: capitalize;
-        }
-
-        .logout-btn {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background-color 0.3s;
-        }
-
-        .logout-btn:hover {
-            background-color: rgba(255, 255, 255, 0.25);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
-
-        .welcome-section {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .welcome-section h1 {
-            color: #1a73e8;
-            margin-bottom: 0.5rem;
-            font-size: 2rem;
-        }
-
-        .welcome-section p {
-            color: #666;
-            font-size: 1.1rem;
-            line-height: 1.5;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-        }
-
-        .stat-icon.pacientes {
-            background: linear-gradient(135deg, #4285f4, #1a73e8);
-        }
-
-        .stat-icon.criticos {
-            background: linear-gradient(135deg, #ea4335, #d93025);
-        }
-
-        .stat-icon.estables {
-            background: linear-gradient(135deg, #34a853, #2e8b57);
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #333;
-            margin: 0.5rem 0;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 1rem;
-            font-weight: 500;
-        }
-
-        .actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .action-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.3s;
-            border: 2px solid transparent;
-        }
-
-        .action-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            border-color: #1a73e8;
-        }
-
-        .action-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-            font-size: 1.8rem;
-            color: white;
-        }
-
-        .action-icon.pacientes {
-            background: linear-gradient(135deg, #4285f4, #1a73e8);
-        }
-
-        .action-icon.buscar {
-            background: linear-gradient(135deg, #34a853, #2e8b57);
-        }
-
-        .action-icon.semaforo {
-            background: linear-gradient(135deg, #fbbc05, #f9ab00);
-        }
-
-        .action-icon.perfil {
-            background: linear-gradient(135deg, #8e44ad, #9b59b6);
-        }
-
-        .action-icon.agregar {
-            background: linear-gradient(135deg, #00bcd4, #0097a7);
-        }
-
-        .action-icon.admin {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-        }
-
-        .action-card h3 {
-            color: #333;
-            margin-bottom: 0.5rem;
-            font-size: 1.3rem;
-        }
-
-        .action-card p {
-            color: #666;
-            font-size: 0.95rem;
-            line-height: 1.4;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 3rem;
-            padding: 1.5rem;
-            color: #666;
-            font-size: 0.9rem;
-            border-top: 1px solid #eee;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 1rem;
-            }
-
-            .navbar {
-                padding: 1rem;
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .user-info {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .actions-grid {
-                grid-template-columns: 1fr;
-            }
+        @media (max-width:640px){
+            .topbar{flex-direction:column;align-items:stretch;gap:12px}
+            .welcome{flex-direction:column}
+            .stats-row{grid-template-columns:1fr}
         }
     </style>
 </head>
 <body>
-    <!-- Barra de navegación -->
-    <nav class="navbar">
-        <div class="navbar-brand">
+    <header class="topbar">
+        <div class="brand">
             <i class="fas fa-heartbeat"></i>
-            <span>Sistema de Monitoreo de Residencia</span>
-        </div>
-        <div class="user-info">
             <div>
-                <strong>{{ username }}</strong>
-                <span class="user-role">Administrador</span>
-            </div>
-            <a href="/logout" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
-            </a>
-        </div>
-    </nav>
-
-    <!-- Contenido principal -->
-    <div class="container">
-        <!-- Sección de bienvenida -->
-        <div class="welcome-section">
-            <h1>Bienvenido, {{ username }}</h1>
-            <p>Panel de control del sistema de monitoreo para la residencia. Desde aquí puedes gestionar todos los residentes y sus datos de salud.</p>
-        </div>
-
-        <!-- Tarjetas de estadísticas -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div>
-                        <div class="stat-label">Total de Residentes</div>
-                        <div class="stat-value">{{ total_pacientes }}</div>
-                    </div>
-                    <div class="stat-icon pacientes">
-                        <i class="fas fa-users"></i>
-                    </div>
-                </div>
-                <p>Residentes registrados en el sistema</p>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div>
-                        <div class="stat-label">Residentes Críticos</div>
-                        <div class="stat-value">{{ criticos }}</div>
-                    </div>
-                    <div class="stat-icon criticos">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                </div>
-                <p>Requieren atención inmediata</p>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div>
-                        <div class="stat-label">Residentes Estables</div>
-                        <div class="stat-value">{{ estables }}</div>
-                    </div>
-                    <div class="stat-icon estables">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                </div>
-                <p>En condiciones normales</p>
+                <div style="font-size:0.95rem">Sistema de Monitoreo</div>
+                <div style="font-size:0.78rem;opacity:0.95">Residencia · Vida en Mano</div>
             </div>
         </div>
-
-        <!-- En la sección de estadísticas del dashboard -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-card-header">
-            <div>
-                <div class="stat-label">
-                    {% if user_role == 'enfermero' %}
-                        Total de Pacientes
-                    {% else %}
-                        Paciente Asignado
-                    {% endif %}
-                </div>
-                <div class="stat-value">{{ total_pacientes }}</div>
+        <div class="user-actions">
+            <div style="text-align:right">
+                <div style="font-weight:700">{{ username }}</div>
+                <div style="font-size:0.85rem;opacity:0.95;text-transform:capitalize">{{ user_role }}</div>
             </div>
-            <div class="stat-icon pacientes">
-                <i class="fas fa-users"></i>
+            <div class="avatar">👤</div>
+            <a href="{{ url_for('logout') }}" class="btn-ghost">Cerrar sesión</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="welcome">
+            <div class="welcome-card">
+                <div style="font-size:2.2rem;border-radius:10px;padding:14px;background:linear-gradient(135deg,#fff,#f3f4ff);">🏥</div>
+                <div class="info">
+                    <h1>Hola, {{ username }} 👋</h1>
+                    <p>Panel de control para revisar el estado de los residentes, alertas recientes y accesos rápidos.</p>
+
+                    <div class="quick">
+                        <a href="{{ url_for('ver_pacientes') }}">Ver Residentes</a>
+                        <a href="{{ url_for('semaforo') }}" style="background:#f97316">Ir al Semáforo</a>
+                    </div>
+                </div>
             </div>
+
+            <div style="min-width:260px;display:flex;flex-direction:column;gap:12px">
+                <div class="stat" style="flex-direction:column;align-items:flex-start;gap:6px">
+                    <div style="color:var(--muted);font-size:0.9rem">Resumen rápido</div>
+                    <div style="font-weight:700;font-size:1.6rem">{{ total_pacientes }} residentes</div>
+                    <div style="color:var(--muted);font-size:0.9rem">Últimas 24h</div>
+                </div>
+                <div class="stat" style="flex-direction:column;align-items:flex-start;gap:6px">
+                    <div style="color:var(--muted);font-size:0.9rem">Rol</div>
+                    <div style="font-weight:700;font-size:1.2rem;text-transform:capitalize">{{ user_role }}</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-row" aria-label="Estadísticas">
+            <div class="stat">
+                <div class="icon pacientes"><i class="fas fa-users"></i></div>
+                <div>
+                    <h3>{{ total_pacientes }}</h3>
+                    <p>Total de residentes</p>
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="icon criticos"><i class="fas fa-triangle-exclamation"></i></div>
+                <div>
+                    <h3>{{ criticos }}</h3>
+                    <p>Residentes en estado crítico</p>
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="icon estables"><i class="fas fa-heart-circle-plus"></i></div>
+                <div>
+                    <h3>{{ estables }}</h3>
+                    <p>Residentes estables</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="actions" aria-label="Acciones">
+            <a class="action" href="{{ url_for('ver_pacientes') }}">
+                <div class="aicon pacientes"><i class="fas fa-list-ol"></i></div>
+                <h4>Ver Residentes</h4>
+                <p>Consulta la lista completa y detalles de cada residente.</p>
+            </a>
+
+            <a class="action" href="{{ url_for('buscar_pacientes') }}">
+                <div class="aicon buscar"><i class="fas fa-search"></i></div>
+                <h4>Buscar Residentes</h4>
+                <p>Búsqueda avanzada por nombre, ID o estado.</p>
+            </a>
+
+            <a class="action" href="{{ url_for('semaforo') }}">
+                <div class="aicon semaforo"><i class="fas fa-traffic-light"></i></div>
+                <h4>Semáforo</h4>
+                <p>Vista visual con códigos de color para priorizar atención.</p>
+            </a>
+
+            <a class="action" href="{{ url_for('mi_perfil') }}">
+                <div class="aicon perfil"><i class="fas fa-user-circle"></i></div>
+                <h4>Mi Perfil</h4>
+                <p>Gestiona tu cuenta y revisa asignaciones.</p>
+            </a>
+        </section>
+
+        <div class="footer">
+            <div>Sistema de Monitoreo de Residencia · Vida en Mano © 2024</div>
+            <div style="margin-top:6px">Última actualización: {{ now().strftime('%d/%m/%Y %H:%M') }}</div>
         </div>
-        <p>
-            {% if user_role == 'enfermero' %}
-                Pacientes bajo supervisión
-            {% else %}
-                Familiar autorizado
-            {% endif %}
-        </p>
-    </div>
-        <!-- Acciones principales -->
-        <div class="actions-grid">
-            <a href="/ver-pacientes" class="action-card">
-                <div class="action-icon pacientes">
-                    <i class="fas fa-list-ol"></i>
-                </div>
-                <h3>Ver Residentes</h3>
-                <p>Consulta la lista completa de residentes con sus datos actualizados.</p>
-            </a>
-
-            <a href="/buscar-pacientes" class="action-card">
-                <div class="action-icon buscar">
-                    <i class="fas fa-search"></i>
-                </div>
-                <h3>Buscar Residentes</h3>
-                <p>Búsqueda avanzada con filtros por nombre, estado y otros criterios.</p>
-            </a>
-
-            <a href="/semaforo" class="action-card">
-                <div class="action-icon semaforo">
-                    <i class="fas fa-traffic-light"></i>
-                </div>
-                <h3>Semáforo de Estado</h3>
-                <p>Vista visual del estado de todos los residentes (rojo/verde/azul).</p>
-            </a>
-
-            <a href="/mi-perfil" class="action-card">
-                <div class="action-icon perfil">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <h3>Mi Perfil</h3>
-                <p>Gestiona tu información personal y consulta las asignaciones.</p>
-            </a>
-
-            <a href="/agregar-paciente" class="action-card">
-                <div class="action-icon agregar">
-                    <i class="fas fa-user-plus"></i>
-                </div>
-                <h3>Agregar Residente</h3>
-                <p>Registra nuevos residentes en el sistema.</p>
-            </a>
-
-            <a href="/admin" class="action-card">
-                <div class="action-icon admin">
-                    <i class="fas fa-cogs"></i>
-                </div>
-                <h3>Panel Administrativo</h3>
-                <p>Gestión de usuarios y configuración del sistema.</p>
-            </a>
-        </div>
-    </div>
-
-    <!-- Pie de página -->
-    <div class="footer">
-        <p>Sistema de Monitoreo de Residencia &copy; 2024</p>
-        <p>Última actualización: {{ now().strftime('%d/%m/%Y %H:%M') }}</p>
-    </div>
+    </main>
 </body>
 </html>
